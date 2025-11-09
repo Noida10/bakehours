@@ -129,6 +129,19 @@ function shuffleArray(array) {
     return newArray;
 }
 
+// Get 8 random letters including the target letter
+function getEightLetters(targetLetter) {
+    const letters = new Set([targetLetter]);
+
+    // Add 7 more random letters
+    while (letters.size < 8) {
+        letters.add(getRandomLetter());
+    }
+
+    // Convert to array and shuffle
+    return shuffleArray(Array.from(letters));
+}
+
 // Create next round
 function nextRound() {
     if (!gameState.isGameActive) return;
@@ -159,9 +172,9 @@ function nextRound() {
         targetLetterEl.style.animation = 'bounce 1s ease-in-out';
     }, 10);
 
-    // Display all 26 letters (shuffled)
-    const shuffledAlphabet = shuffleArray(alphabet);
-    renderLetterOptions(shuffledAlphabet);
+    // Display 8 random letters (including target)
+    const eightLetters = getEightLetters(gameState.targetLetter);
+    renderLetterOptions(eightLetters);
 
     // Start auto-shuffle timer (every 3 seconds)
     gameState.shuffleTimer = setInterval(() => {
@@ -176,8 +189,8 @@ function shuffleLetterOptions() {
     letterOptionsEl.classList.add('shuffling');
 
     setTimeout(() => {
-        const shuffledAlphabet = shuffleArray(alphabet);
-        renderLetterOptions(shuffledAlphabet);
+        const eightLetters = getEightLetters(gameState.targetLetter);
+        renderLetterOptions(eightLetters);
         letterOptionsEl.classList.remove('shuffling');
     }, 250);
 }
