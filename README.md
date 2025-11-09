@@ -5,8 +5,12 @@ A fun and educational alphabet learning game designed for children under 8 years
 ## 🌟 Features
 
 - **2-Player Turn-Based**: Perfect for siblings, friends, or parent-child play
+- **All 26 Letters Displayed**: Complete alphabet shown in 2 colorful rows
+- **Auto-Shuffle Every 3 Seconds**: Keeps the game dynamic and challenging!
+- **Unique Sound for Each Letter**: Different musical tone for every letter A-Z 🔊
+- **Keyboard Support**: Kids can click buttons OR press keys on the keyboard 🎹
 - **Colorful & Engaging**: Bright colors and fun animations keep kids interested
-- **Educational**: Helps children learn letter recognition
+- **Educational**: Helps children learn letter recognition and keyboard skills
 - **Simple Controls**: Large buttons perfect for small hands
 - **Score Tracking**: Motivates players with a friendly competition
 - **No Installation Required**: Just open in a web browser!
@@ -16,11 +20,15 @@ A fun and educational alphabet learning game designed for children under 8 years
 1. **Starting the Game**: Open `index.html` in any web browser
 2. **Taking Turns**: Players take turns identifying letters
 3. **Goal**: Look at the large letter shown at the top
-4. **Action**: Click the matching letter from the choices below
-5. **Scoring**:
+4. **Listen**: Each letter plays its own unique sound! 🔊
+5. **Action**:
+   - **Click** the matching letter button with your mouse, OR
+   - **Press** the matching letter key on your keyboard 🎹
+6. **Auto-Shuffle**: All 26 letters are displayed and automatically shuffle every 3 seconds!
+7. **Scoring**:
    - Get 1 point for each correct answer! ⭐
-   - If you click the wrong letter, the turn passes to the other player
-6. **Winning**: First player to reach 10 points wins! 🏆
+   - If you choose the wrong letter, the turn passes to the other player
+8. **Winning**: First player to reach 10 points wins! 🏆
 
 ## 🚀 How to Run
 
@@ -66,8 +74,12 @@ python3 -m http.server 8000
 - Immediate feedback
 
 ### Gameplay Elements
-- 6 letter choices per round
-- Random letter generation
+- All 26 letters displayed in 2 rows
+- Auto-shuffle every 3 seconds for dynamic gameplay
+- Unique sound frequency for each letter (A-Z)
+- Success and error sound effects
+- Keyboard input support (A-Z keys)
+- Mouse hover plays letter sounds
 - Score tracking for both players
 - Winning celebration
 - "How to Play" help modal
@@ -90,8 +102,12 @@ This game is designed specifically for children under 8 who are:
 ### Learning Tips
 - Play together first to demonstrate
 - Encourage saying the letter name out loud
+- Have kids listen to the unique sound each letter makes
+- Practice using keyboard keys to build typing skills
 - Celebrate correct answers enthusiastically
+- Let them explore by hovering over letters to hear sounds
 - Use it as a reward for completing other tasks
+- The 3-second shuffle keeps attention and adds challenge!
 
 ## 🛠️ Technical Details
 
@@ -143,11 +159,13 @@ Have ideas to make this game better? Feel free to modify and improve it!
 
 ## 💡 Future Ideas
 
-- Sound effects for correct/wrong answers
-- More difficulty levels
-- Different game modes (lowercase letters, letter sounds)
+- Voice pronunciation for each letter
+- Different game modes (lowercase letters, phonics)
 - Progress tracking over multiple games
 - Timed challenges
+- Adjustable shuffle speed
+- Option to display fewer letters for younger children
+- Letter matching pairs game mode
 
 ---
 
