@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nancy Paradise Hotel | Luxury & Comfort</title>
+    <link rel="stylesheet" href="hotel.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <span class="logo-icon">✦</span>
+                <span class="logo-text">Nancy Paradise</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#rooms">Rooms</a></li>
+                <li><a href="#amenities">Amenities</a></li>
+                <li><a href="#gallery">Gallery</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <a href="#book" class="btn-book">Book Now</a>
+            <button class="mobile-menu-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <p class="hero-subtitle">Welcome to</p>
+            <h1 class="hero-title">Nancy Paradise Hotel</h1>
+            <p class="hero-tagline">Where Luxury Meets Tranquility</p>
+            <div class="hero-buttons">
+                <a href="#rooms" class="btn btn-primary">Explore Rooms</a>
+                <a href="#about" class="btn btn-secondary">Learn More</a>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <span>Scroll</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <!-- Booking Bar -->
+    <section id="book" class="booking-bar">
+        <div class="container">
+            <form class="booking-form">
+                <div class="form-group">
+                    <label for="checkin">Check In</label>
+                    <input type="date" id="checkin" name="checkin">
+                </div>
+                <div class="form-group">
+                    <label for="checkout">Check Out</label>
+                    <input type="date" id="checkout" name="checkout">
+                </div>
+                <div class="form-group">
+                    <label for="guests">Guests</label>
+                    <select id="guests" name="guests">
+                        <option value="1">1 Guest</option>
+                        <option value="2" selected>2 Guests</option>
+                        <option value="3">3 Guests</option>
+                        <option value="4">4 Guests</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rooms">Rooms</label>
+                    <select id="rooms" name="rooms">
+                        <option value="1" selected>1 Room</option>
+                        <option value="2">2 Rooms</option>
+                        <option value="3">3 Rooms</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-book-now">Check Availability</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-images">
+                    <div class="about-img-main">
+                        <div class="img-placeholder" data-label="Hotel Exterior"></div>
+                    </div>
+                    <div class="about-img-secondary">
+                        <div class="img-placeholder" data-label="Lobby"></div>
+                    </div>
+                </div>
+                <div class="about-content">
+                    <span class="section-label">About Us</span>
+                    <h2 class="section-title">A Haven of Elegance & Comfort</h2>
+                    <p class="about-text">
+                        Nestled in the heart of paradise, Nancy Paradise Hotel offers an unparalleled
+                        blend of luxury, comfort, and exceptional service. Since 1985, we have been
+                        welcoming guests from around the world to experience the true meaning of hospitality.
+                    </p>
+                    <p class="about-text">
+                        Our commitment to excellence is reflected in every detail – from our
+                        meticulously designed rooms to our world-class amenities and personalized
+                        service that anticipates your every need.
+                    </p>
+                    <div class="about-stats">
+                        <div class="stat">
+                            <span class="stat-number">150+</span>
+                            <span class="stat-label">Luxury Rooms</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">38</span>
+                            <span class="stat-label">Years of Excellence</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">50K+</span>
+                            <span class="stat-label">Happy Guests</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rooms Section -->
+    <section id="rooms" class="rooms">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Accommodations</span>
+                <h2 class="section-title">Our Rooms & Suites</h2>
+                <p class="section-description">
+                    Each room is thoughtfully designed to provide the perfect balance of comfort and elegance
+                </p>
+            </div>
+            <div class="rooms-grid">
+                <article class="room-card">
+                    <div class="room-image">
+                        <div class="img-placeholder" data-label="Deluxe Room"></div>
+                        <span class="room-price">$199<small>/night</small></span>
+                    </div>
+                    <div class="room-content">
+                        <h3 class="room-title">Deluxe Room</h3>
+                        <p class="room-description">Spacious comfort with modern amenities and city views</p>
+                        <ul class="room-features">
+                            <li>35 m²</li>
+                            <li>King Bed</li>
+                            <li>City View</li>
+                            <li>Free WiFi</li>
+                        </ul>
+                        <a href="#book" class="btn btn-outline">Book Now</a>
+                    </div>
+                </article>
+
+                <article class="room-card featured">
+                    <div class="room-image">
+                        <div class="img-placeholder" data-label="Premium Suite"></div>
+                        <span class="room-badge">Most Popular</span>
+                        <span class="room-price">$349<small>/night</small></span>
+                    </div>
+                    <div class="room-content">
+                        <h3 class="room-title">Premium Suite</h3>
+                        <p class="room-description">Elegant suite with separate living area and panoramic views</p>
+                        <ul class="room-features">
+                            <li>55 m²</li>
+                            <li>King Bed</li>
+                            <li>Ocean View</li>
+                            <li>Balcony</li>
+                        </ul>
+                        <a href="#book" class="btn btn-primary">Book Now</a>
+                    </div>
+                </article>
+
+                <article class="room-card">
+                    <div class="room-image">
+                        <div class="img-placeholder" data-label="Presidential Suite"></div>
+                        <span class="room-price">$599<small>/night</small></span>
+                    </div>
+                    <div class="room-content">
+                        <h3 class="room-title">Presidential Suite</h3>
+                        <p class="room-description">Ultimate luxury with private terrace and butler service</p>
+                        <ul class="room-features">
+                            <li>120 m²</li>
+                            <li>2 Bedrooms</li>
+                            <li>Private Terrace</li>
+                            <li>Butler Service</li>
+                        </ul>
+                        <a href="#book" class="btn btn-outline">Book Now</a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Amenities Section -->
+    <section id="amenities" class="amenities">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Hotel Features</span>
+                <h2 class="section-title">World-Class Amenities</h2>
+                <p class="section-description">
+                    Indulge in our exceptional facilities designed for your comfort and pleasure
+                </p>
+            </div>
+            <div class="amenities-grid">
+                <div class="amenity-card">
+                    <div class="amenity-icon">🏊</div>
+                    <h3>Infinity Pool</h3>
+                    <p>Stunning rooftop pool with breathtaking views</p>
+                </div>
+                <div class="amenity-card">
+                    <div class="amenity-icon">🍽️</div>
+                    <h3>Fine Dining</h3>
+                    <p>Award-winning restaurants with global cuisine</p>
+                </div>
+                <div class="amenity-card">
+                    <div class="amenity-icon">💆</div>
+                    <h3>Luxury Spa</h3>
+                    <p>Rejuvenating treatments and wellness programs</p>
+                </div>
+                <div class="amenity-card">
+                    <div class="amenity-icon">🏋️</div>
+                    <h3>Fitness Center</h3>
+                    <p>State-of-the-art equipment and personal trainers</p>
+                </div>
+                <div class="amenity-card">
+                    <div class="amenity-icon">🍸</div>
+                    <h3>Sky Bar</h3>
+                    <p>Signature cocktails with panoramic city views</p>
+                </div>
+                <div class="amenity-card">
+                    <div class="amenity-icon">🚗</div>
+                    <h3>Valet Parking</h3>
+                    <p>Complimentary parking and car service</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="gallery">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Photo Gallery</span>
+                <h2 class="section-title">Experience Nancy Paradise</h2>
+            </div>
+            <div class="gallery-grid">
+                <div class="gallery-item large">
+                    <div class="img-placeholder" data-label="Hotel Lobby"></div>
+                </div>
+                <div class="gallery-item">
+                    <div class="img-placeholder" data-label="Pool Area"></div>
+                </div>
+                <div class="gallery-item">
+                    <div class="img-placeholder" data-label="Restaurant"></div>
+                </div>
+                <div class="gallery-item">
+                    <div class="img-placeholder" data-label="Spa"></div>
+                </div>
+                <div class="gallery-item">
+                    <div class="img-placeholder" data-label="Beach"></div>
+                </div>
+                <div class="gallery-item large">
+                    <div class="img-placeholder" data-label="Suite Interior"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Guest Reviews</span>
+                <h2 class="section-title">What Our Guests Say</h2>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">★★★★★</div>
+                    <p class="testimonial-text">
+                        "An absolutely magical experience. The attention to detail and personalized
+                        service made our anniversary unforgettable. We'll definitely be back!"
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">JM</div>
+                        <div class="author-info">
+                            <span class="author-name">Jennifer & Michael</span>
+                            <span class="author-location">New York, USA</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">★★★★★</div>
+                    <p class="testimonial-text">
+                        "The spa experience was world-class and the ocean-view suite exceeded
+                        all expectations. True paradise found!"
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">ST</div>
+                        <div class="author-info">
+                            <span class="author-name">Sophie Turner</span>
+                            <span class="author-location">London, UK</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">★★★★★</div>
+                    <p class="testimonial-text">
+                        "From the moment we arrived, we felt like royalty. The staff goes above
+                        and beyond. Simply exceptional!"
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">HT</div>
+                        <div class="author-info">
+                            <span class="author-name">Hiroshi Tanaka</span>
+                            <span class="author-location">Tokyo, Japan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <span class="section-label">Get in Touch</span>
+                    <h2 class="section-title">Contact Us</h2>
+                    <p class="contact-description">
+                        We're here to assist you with reservations, inquiries, or any special requests.
+                    </p>
+                    <div class="contact-details">
+                        <div class="contact-item">
+                            <span class="contact-icon">📍</span>
+                            <div>
+                                <strong>Address</strong>
+                                <p>123 Paradise Boulevard<br>Oceanview City, PC 12345</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">📞</span>
+                            <div>
+                                <strong>Phone</strong>
+                                <p>+1 (555) 123-4567</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">✉️</span>
+                            <div>
+                                <strong>Email</strong>
+                                <p>reservations@nancyparadise.com</p>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-icon">🕐</span>
+                            <div>
+                                <strong>Front Desk</strong>
+                                <p>24/7 Available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-form-wrapper">
+                    <form class="contact-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="name">Full Name</label>
+                                <input type="text" id="name" name="name" placeholder="John Doe" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="john@example.com" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" name="subject" placeholder="How can we help?">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="5" placeholder="Your message..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary full-width">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <span class="logo-icon">✦</span>
+                        <span class="logo-text">Nancy Paradise</span>
+                    </a>
+                    <p>Experience luxury redefined in the heart of paradise. Your perfect escape awaits.</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook">f</a>
+                        <a href="#" aria-label="Instagram">ig</a>
+                        <a href="#" aria-label="Twitter">x</a>
+                        <a href="#" aria-label="LinkedIn">in</a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#rooms">Rooms & Suites</a></li>
+                        <li><a href="#amenities">Amenities</a></li>
+                        <li><a href="#gallery">Gallery</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Services</h4>
+                    <ul>
+                        <li><a href="#">Spa & Wellness</a></li>
+                        <li><a href="#">Dining</a></li>
+                        <li><a href="#">Events</a></li>
+                        <li><a href="#">Weddings</a></li>
+                        <li><a href="#">Corporate</a></li>
+                    </ul>
+                </div>
+                <div class="footer-newsletter">
+                    <h4>Newsletter</h4>
+                    <p>Subscribe for exclusive offers and updates</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email address" required>
+                        <button type="submit">→</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Nancy Paradise Hotel. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const navLinks = document.querySelector('.nav-links');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            mobileMenuBtn.classList.toggle('active');
+        });
+
+        // Navbar scroll effect
+        const navbar = document.querySelector('.navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    // Close mobile menu if open
+                    navLinks.classList.remove('active');
+                    mobileMenuBtn.classList.remove('active');
+                }
+            });
+        });
+
+        // Set minimum date for check-in/out
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('checkin').setAttribute('min', today);
+        document.getElementById('checkout').setAttribute('min', today);
+
+        // Update checkout min date based on checkin
+        document.getElementById('checkin').addEventListener('change', function() {
+            document.getElementById('checkout').setAttribute('min', this.value);
+        });
+    </script>
+</body>
+</html>
