@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Now - BakeHours</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-subtitle {
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 15px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .booking-widget-container {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        @media (max-width: 600px) {
+            .page-title {
+                font-size: 1.8rem;
+            }
+
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="nav-link">Back to Home</a>
+
+        <div class="page-header">
+            <h1 class="page-title">Book Your Session</h1>
+            <p class="page-subtitle">Reserve your spot today!</p>
+        </div>
+
+        <div class="booking-widget-container">
+            <script src="https://room99-booking-widget.pages.dev/widget-init.js"></script>
+            <div
+                data-room99-widget
+                data-api-key="CdLWhRpIeulHdpJABBDLYEbWWt5bCSjJSVlF8eCAaNM"
+                data-theme="modern"
+                style="min-height: 600px;"
+            >
+                Loading booking system...
+            </div>
+        </div>
+    </div>
+</body>
+</html>
