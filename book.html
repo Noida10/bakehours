@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Stay | Nancy Paradise Hotel</title>
+    <link rel="stylesheet" href="hotel.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Booking Page Specific Styles */
+        .booking-hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 140px 0 60px;
+            text-align: center;
+            color: var(--color-white);
+        }
+
+        .booking-hero h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .booking-hero p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+
+        .booking-section {
+            padding: var(--spacing-2xl) 0;
+            background: var(--color-off-white);
+            min-height: 70vh;
+        }
+
+        .booking-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .booking-widget-wrapper {
+            background: var(--color-white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--spacing-lg);
+            min-height: 600px;
+        }
+
+        .booking-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-2xl);
+        }
+
+        .booking-feature {
+            text-align: center;
+            padding: var(--spacing-lg);
+        }
+
+        .booking-feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .booking-feature h3 {
+            font-size: 1.1rem;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .booking-feature p {
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin-bottom: var(--spacing-md);
+            transition: color var(--transition-fast);
+        }
+
+        .back-link:hover {
+            color: var(--color-white);
+        }
+
+        @media (max-width: 768px) {
+            .booking-features {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-hero {
+                padding: 120px 0 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar scrolled">
+        <div class="nav-container">
+            <a href="hotel.html" class="logo">
+                <span class="logo-icon">✦</span>
+                <span class="logo-text">Nancy Paradise</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="hotel.html#home">Home</a></li>
+                <li><a href="hotel.html#about">About</a></li>
+                <li><a href="hotel.html#rooms">Rooms</a></li>
+                <li><a href="hotel.html#amenities">Amenities</a></li>
+                <li><a href="hotel.html#gallery">Gallery</a></li>
+                <li><a href="hotel.html#contact">Contact</a></li>
+            </ul>
+            <a href="book.html" class="btn-book">Book Now</a>
+            <button class="mobile-menu-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Booking Hero -->
+    <section class="booking-hero">
+        <div class="container">
+            <a href="hotel.html" class="back-link">← Back to Home</a>
+            <h1>Book Your Stay</h1>
+            <p>Experience luxury and comfort at Nancy Paradise Hotel</p>
+        </div>
+    </section>
+
+    <!-- Booking Widget Section -->
+    <section class="booking-section">
+        <div class="booking-container">
+            <div class="booking-widget-wrapper">
+                <!-- Room99 Booking Widget -->
+                <script src="https://room99-booking-widget.pages.dev/widget-init.js"></script>
+                <div
+                    data-room99-widget
+                    data-api-key="CdLWhRpIeulHdpJABBDLYEbWWt5bCSjJSVlF8eCAaNM"
+                    data-theme="modern"
+                    style="min-height: 600px;"
+                >
+                    Loading booking system...
+                </div>
+            </div>
+
+            <!-- Booking Features -->
+            <div class="booking-features">
+                <div class="booking-feature">
+                    <div class="booking-feature-icon">🔒</div>
+                    <h3>Secure Booking</h3>
+                    <p>Your payment information is protected with industry-standard encryption</p>
+                </div>
+                <div class="booking-feature">
+                    <div class="booking-feature-icon">✓</div>
+                    <h3>Instant Confirmation</h3>
+                    <p>Receive immediate booking confirmation via email</p>
+                </div>
+                <div class="booking-feature">
+                    <div class="booking-feature-icon">💬</div>
+                    <h3>24/7 Support</h3>
+                    <p>Our concierge team is available around the clock to assist you</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="hotel.html" class="logo">
+                        <span class="logo-icon">✦</span>
+                        <span class="logo-text">Nancy Paradise</span>
+                    </a>
+                    <p>Experience luxury redefined in the heart of paradise. Your perfect escape awaits.</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook">f</a>
+                        <a href="#" aria-label="Instagram">ig</a>
+                        <a href="#" aria-label="Twitter">x</a>
+                        <a href="#" aria-label="LinkedIn">in</a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="hotel.html#about">About Us</a></li>
+                        <li><a href="hotel.html#rooms">Rooms & Suites</a></li>
+                        <li><a href="hotel.html#amenities">Amenities</a></li>
+                        <li><a href="hotel.html#gallery">Gallery</a></li>
+                        <li><a href="hotel.html#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Services</h4>
+                    <ul>
+                        <li><a href="#">Spa & Wellness</a></li>
+                        <li><a href="#">Dining</a></li>
+                        <li><a href="#">Events</a></li>
+                        <li><a href="#">Weddings</a></li>
+                        <li><a href="#">Corporate</a></li>
+                    </ul>
+                </div>
+                <div class="footer-newsletter">
+                    <h4>Newsletter</h4>
+                    <p>Subscribe for exclusive offers and updates</p>
+                    <form class="newsletter-form">
+                        <input type="email" placeholder="Your email address" required>
+                        <button type="submit">→</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Nancy Paradise Hotel. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const navLinks = document.querySelector('.nav-links');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            mobileMenuBtn.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
