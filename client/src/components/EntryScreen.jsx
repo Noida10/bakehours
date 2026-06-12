@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
+import { BUILD } from '../lib/build';
 
+// Members sign in with their first name. Admins (Anmol, Julien) sign in with
+// their private code, so they aren't shown here.
 const VALID_NAMES = [
-  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
-  'Harit', 'Sushobhita', 'Divya', 'Julien',
+  'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
+  'Harit', 'Sushobhita', 'Divya',
 ];
 
 export default function EntryScreen({ onEnter }) {
@@ -56,6 +59,7 @@ export default function EntryScreen({ onEnter }) {
             Equinox India Team Portal
           </h1>
           <p className="text-slate-500 mt-1">Enter your name to continue</p>
+          <p className="text-[10px] text-slate-300 mt-1">{BUILD}</p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">

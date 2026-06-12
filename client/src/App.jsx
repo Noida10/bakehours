@@ -10,6 +10,7 @@ import TeamVacationTab from './components/TeamVacationTab';
 import ManageTab from './components/ManageTab';
 import DownloadsTab from './components/DownloadsTab';
 import { currentWeekInfo } from './lib/weeks';
+import { BUILD } from './lib/build';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -114,10 +115,12 @@ function Dashboard({ user, onSignOut }) {
                     {user.canEdit ? 'Admin' : 'Admin · view only'}
                   </span>
                 )}
+                <span className="ml-1 text-slate-300">· {BUILD}</span>
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onSignOut}
             className="text-sm text-slate-500 hover:text-slate-800"
           >

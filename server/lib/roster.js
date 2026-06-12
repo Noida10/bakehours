@@ -21,12 +21,17 @@ async function loadExtra() {
   return meta && Array.isArray(meta.extraMembers) ? meta.extraMembers : [];
 }
 
-// { devMembers, allNames, extra } — devMembers are everyone with a data row.
+// { devMembers, allNames, loginNames, extra }
+//  - devMembers: everyone with a data row (incl. Anmol), for tables/exports
+//  - loginNames: names that can be typed directly to sign in (members only);
+//    admins (Anmol, Julien) can ONLY sign in via their alias codes
 async function getRoster(force = false) {
   if (!force && cache && Date.now() - cacheAt < TTL_MS) return cache;
   const extra = await loadExtra();
   const devMembers = [...BASE_DEV_MEMBERS, ...extra];
-  cache = { devMembers, allNames: [...devMembers, 'Julien'], extra };
+  const allNames = [...devMembers, 'Julien'];
+  const loginNames = allNames.filter((n) => !ADMINS.includes(n));
+  cache = { devMembers, allNames, loginNames, extra };
   cacheAt = Date.now();
   return cache;
 }
@@ -40,8 +45,9 @@ async function getDevMembers() {
 }
 
 async function resolveName(input) {
-  const { allNames } = await getRoster();
-  return resolveNameWith(input, allNames, ALIASES);
+  // Match members by name; admins (Anmol/Julien) only via their alias codes.
+  const { loginNames } = await getRoster();
+  return resolveNameWith(input, loginNames, ALIASES);
 }
 
 async function hasDataRow(name) {
