@@ -45,23 +45,29 @@ npm start          # Express serves the API + built client on :3001
 The app is configured for Vercel: the React client is built to static files
 (served by Vercel's CDN) and the Express backend runs as a single serverless
 function (`api/index.js`, fed by `vercel.json` rewrites). Because Vercel's
-filesystem is read-only/ephemeral, data is stored in **Vercel KV** in
-production instead of JSON files.
+filesystem is read-only/ephemeral, production data is stored in a connected
+store — **Vercel Blob** or **Vercel KV / Upstash Redis** — instead of JSON
+files.
 
-**One-time setup:**
+**One-time setup (Vercel Blob — recommended):**
 
 1. Import the repo into Vercel (no framework preset needed — `vercel.json`
    defines the build).
-2. In the project's **Storage** tab, create a **KV / Upstash Redis** store
-   and **connect it** to the project. Vercel injects `KV_REST_API_URL` and
-   `KV_REST_API_TOKEN` (the Upstash names `UPSTASH_REDIS_REST_URL` /
-   `UPSTASH_REDIS_REST_TOKEN` are also accepted).
-3. **Redeploy** so the function picks up the new env vars. Env vars added
-   after a deploy do **not** apply to existing deployments — you must trigger
-   a fresh deploy (Deployments → ⋯ → Redeploy, or push a commit).
+2. In the project's **Storage** tab, create a **Blob** store and **connect
+   it** to the project. Vercel injects a `BLOB_READ_WRITE_TOKEN` (a custom
+   name like `EQUINOX_DEV_READ_WRITE_TOKEN` is also detected). The token —
+   not just the store ID — is what authenticates writes.
+3. **Redeploy** so the function picks up the new env var. Env vars added
+   after a deploy do **not** apply to existing deployments — trigger a fresh
+   deploy (Deployments → ⋯ → Redeploy, or push a commit).
 
-The storage layer auto-detects KV: if those env vars are present it uses KV,
-otherwise it falls back to JSON files (so local `npm run dev` needs no KV).
+> **Vercel KV / Upstash Redis** also works: connect a KV store and Vercel
+> injects `KV_REST_API_URL` / `KV_REST_API_TOKEN` (Upstash names
+> `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are accepted too). KV
+> takes priority over Blob if both are present.
+
+The storage layer auto-detects the backend (KV → Blob → files). Local
+`npm run dev` needs nothing — it uses JSON files.
 
 > **Until a store is connected, data does not persist** — on Vercel the
 > file-mode fallback writes to `/tmp`, which is wiped on cold starts. The app
