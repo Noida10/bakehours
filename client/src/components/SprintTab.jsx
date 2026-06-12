@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
-import { useToast } from './Toast';
-import { useNow, formatRelative } from '../lib/useRelativeTime';
+import { useTabSave } from './SaveContext';
 import {
   SPRINT_FIELDS,
   EXPECTED_TOTAL,
@@ -25,17 +24,14 @@ function NumberInput({ value, onChange }) {
   );
 }
 
-export default function SprintTab({ user, weekId, setWeekId }) {
-  const toast = useToast();
-  useNow();
+const serialize = (row, projects) => JSON.stringify({ row, projects });
 
+export default function SprintTab({ user, weekId, setWeekId }) {
   const [row, setRow] = useState(null);
   const [projects, setProjects] = useState([]);
   const [catalog, setCatalog] = useState([]);
+  const [saved, setSaved] = useState(''); // snapshot of last-persisted state
   const [loading, setLoading] = useState(true);
-  const [lastSaved, setLastSaved] = useState(null);
-
-  const saveTimers = useRef({});
 
   useEffect(() => {
     let active = true;
@@ -50,72 +46,48 @@ export default function SprintTab({ user, weekId, setWeekId }) {
         const mine = sprint.members[user.name] || {
           project: 0, bug: 0, training: 0, other: 0, meeting: 0, lead: 0, off: 0,
         };
+        const mineProjects = proj.memberBreakdowns[user.name] || [];
         setRow(mine);
-        setLastSaved(mine.lastUpdated || null);
-        setProjects(proj.memberBreakdowns[user.name] || []);
+        setProjects(mineProjects);
         setCatalog((cat.projects || []).map((p) => p.name));
+        setSaved(serialize(mine, mineProjects));
         setLoading(false);
       })
       .catch(() => {
-        if (active) {
-          toast.show('Failed to load sprint data', { type: 'error' });
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       });
     return () => {
       active = false;
     };
   }, [weekId, user.name]);
 
-  const saveRow = useCallback(
-    (next) => {
-      const fields = {};
-      for (const f of SPRINT_FIELDS) fields[f.key] = Number(next[f.key]) || 0;
-      api
-        .putSprint(weekId, user.name, fields)
-        .then((saved) => {
-          setLastSaved(saved.lastUpdated);
-          toast.show('Saved');
-        })
-        .catch(() =>
-          toast.show('Save failed', {
-            type: 'error',
-            action: { label: 'Retry', onClick: () => saveRow(next) },
-          })
-        );
-    },
-    [weekId, user.name, toast]
-  );
+  const dirty = !loading && row != null && serialize(row, projects) !== saved;
+
+  const saver = useCallback(async () => {
+    const fields = {};
+    for (const f of SPRINT_FIELDS) fields[f.key] = Number(row[f.key]) || 0;
+    await api.putSprint(weekId, user.name, fields);
+    await api.putProjects(weekId, user.name, projects);
+    setSaved(serialize(row, projects));
+  }, [weekId, user.name, row, projects]);
+
+  useTabSave(saver, dirty);
+
+  function changeWeek(next) {
+    if (
+      dirty &&
+      !window.confirm('You have unsaved changes. Switch week without saving?')
+    ) {
+      return;
+    }
+    setWeekId(next);
+  }
 
   function updateField(key, raw) {
     let v = raw === '' ? 0 : Number(raw);
     if (!Number.isFinite(v)) v = 0;
     v = Math.max(0, Math.min(5, v));
-    const next = { ...row, [key]: v };
-    setRow(next);
-    clearTimeout(saveTimers.current.row);
-    saveTimers.current.row = setTimeout(() => saveRow(next), 500);
-  }
-
-  const saveProjects = useCallback(
-    (next) => {
-      api
-        .putProjects(weekId, user.name, next)
-        .then(() => toast.show('Saved'))
-        .catch(() =>
-          toast.show('Save failed', {
-            type: 'error',
-            action: { label: 'Retry', onClick: () => saveProjects(next) },
-          })
-        );
-    },
-    [weekId, user.name, toast]
-  );
-
-  function updateProjects(next) {
-    setProjects(next);
-    clearTimeout(saveTimers.current.proj);
-    saveTimers.current.proj = setTimeout(() => saveProjects(next), 600);
+    setRow((r) => ({ ...r, [key]: v }));
   }
 
   if (loading) {
@@ -134,10 +106,12 @@ export default function SprintTab({ user, weekId, setWeekId }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <WeekSelector value={weekId} onChange={setWeekId} />
-        <div className="text-xs text-slate-500">
-          Last saved: {formatRelative(lastSaved)}
-        </div>
+        <WeekSelector value={weekId} onChange={changeWeek} />
+        {dirty && (
+          <span className="text-xs font-medium text-amber-600">
+            Unsaved changes — use Save in the header
+          </span>
+        )}
       </div>
 
       {/* Sprint hours card */}
@@ -206,7 +180,7 @@ export default function SprintTab({ user, weekId, setWeekId }) {
                 onChange={(e) => {
                   const next = projects.slice();
                   next[i] = { ...next[i], name: e.target.value };
-                  updateProjects(next);
+                  setProjects(next);
                 }}
                 className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
               />
@@ -218,15 +192,13 @@ export default function SprintTab({ user, weekId, setWeekId }) {
                 onChange={(e) => {
                   const next = projects.slice();
                   next[i] = { ...next[i], days: Number(e.target.value) || 0 };
-                  updateProjects(next);
+                  setProjects(next);
                 }}
                 className="w-20 rounded-md border border-slate-300 px-2 py-2 text-center text-sm outline-none focus:ring-2 focus:ring-brand-500"
               />
               <button
                 type="button"
-                onClick={() =>
-                  updateProjects(projects.filter((_, j) => j !== i))
-                }
+                onClick={() => setProjects(projects.filter((_, j) => j !== i))}
                 className="h-9 w-9 shrink-0 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 transition"
                 aria-label="Delete project"
               >
@@ -237,9 +209,7 @@ export default function SprintTab({ user, weekId, setWeekId }) {
         </div>
         <button
           type="button"
-          onClick={() =>
-            updateProjects([...projects, { name: '', days: 0 }])
-          }
+          onClick={() => setProjects([...projects, { name: '', days: 0 }])}
           className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100 transition"
         >
           + Add project

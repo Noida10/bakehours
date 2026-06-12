@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { identify, requireUser, requireAdmin } = require('./lib/auth');
-const { mode: storageMode } = require('./lib/store');
+const { mode: storageMode, persistent } = require('./lib/store');
 
 const authRoutes = require('./routes/auth');
 const sprintRoutes = require('./routes/sprint');
@@ -33,7 +33,7 @@ app.use('/api', authRoutes);
 // Health also reports the active storage backend ("kv" or "file") so it's
 // easy to confirm Vercel KV is connected: a deployed app should report "kv".
 app.get('/api/health', (req, res) =>
-  res.json({ ok: true, storage: storageMode })
+  res.json({ ok: true, storage: storageMode, persistent })
 );
 
 // Everything else needs a recognised user.

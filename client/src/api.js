@@ -66,6 +66,9 @@ export const api = {
   putCatalog: (projects) =>
     request('/api/catalog', { method: 'PUT', body: { projects } }),
 
+  // Storage/persistence status.
+  getHealth: () => request('/api/health'),
+
   // Roster.
   getRoster: () => request('/api/roster'),
   addMember: (name) =>

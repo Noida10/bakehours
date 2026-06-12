@@ -52,14 +52,21 @@ production instead of JSON files.
 
 1. Import the repo into Vercel (no framework preset needed — `vercel.json`
    defines the build).
-2. In the project's **Storage** tab, create a **KV** store (Upstash Redis)
+2. In the project's **Storage** tab, create a **KV / Upstash Redis** store
    and **connect it** to the project. Vercel injects `KV_REST_API_URL` and
-   `KV_REST_API_TOKEN` automatically.
-3. Deploy. That's it — the build command and routing come from `vercel.json`.
+   `KV_REST_API_TOKEN` (the Upstash names `UPSTASH_REDIS_REST_URL` /
+   `UPSTASH_REDIS_REST_TOKEN` are also accepted).
+3. **Redeploy** so the function picks up the new env vars. Env vars added
+   after a deploy do **not** apply to existing deployments — you must trigger
+   a fresh deploy (Deployments → ⋯ → Redeploy, or push a commit).
 
 The storage layer auto-detects KV: if those env vars are present it uses KV,
 otherwise it falls back to JSON files (so local `npm run dev` needs no KV).
-No other configuration is required.
+
+> **Until a store is connected, data does not persist** — on Vercel the
+> file-mode fallback writes to `/tmp`, which is wiped on cold starts. The app
+> shows an amber warning banner and `GET /api/health` returns
+> `{"persistent": false}` whenever this is the case.
 
 ## Data layout (local / file mode)
 

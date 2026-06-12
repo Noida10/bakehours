@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api, setApiUser } from './api';
 import { ToastProvider } from './components/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
+import { SaveProvider, useSave } from './components/SaveContext';
 import EntryScreen from './components/EntryScreen';
 import SprintTab from './components/SprintTab';
 import VacationTab from './components/VacationTab';
@@ -69,11 +70,13 @@ export default function App() {
   return (
     <ToastProvider>
       <ErrorBoundary>
-        {!user ? (
-          <EntryScreen onEnter={handleEnter} />
-        ) : (
-          <Dashboard user={user} onSignOut={signOut} />
-        )}
+        <SaveProvider>
+          {!user ? (
+            <EntryScreen onEnter={handleEnter} />
+          ) : (
+            <Dashboard user={user} onSignOut={signOut} />
+          )}
+        </SaveProvider>
       </ErrorBoundary>
     </ToastProvider>
   );
@@ -81,6 +84,7 @@ export default function App() {
 
 function Dashboard({ user, onSignOut }) {
   const [weekId, setWeekId] = useState(currentWeekInfo().id);
+  const { dirty } = useSave();
 
   const tabs = user.isAdmin
     ? [
@@ -95,6 +99,18 @@ function Dashboard({ user, onSignOut }) {
       ];
 
   const [active, setActive] = useState(tabs[0].id);
+
+  // Don't silently throw away unsaved edits when moving between tabs.
+  function selectTab(id) {
+    if (id === active) return;
+    if (
+      dirty &&
+      !window.confirm('You have unsaved changes. Leave without saving?')
+    ) {
+      return;
+    }
+    setActive(id);
+  }
 
   return (
     <div className="min-h-screen">
@@ -119,13 +135,16 @@ function Dashboard({ user, onSignOut }) {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="text-sm text-slate-500 hover:text-slate-800"
-          >
-            Switch user
-          </button>
+          <div className="flex items-center gap-3">
+            <SaveButton />
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-sm text-slate-500 hover:text-slate-800"
+            >
+              Switch user
+            </button>
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4">
@@ -133,7 +152,8 @@ function Dashboard({ user, onSignOut }) {
             {tabs.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setActive(t.id)}
+                type="button"
+                onClick={() => selectTab(t.id)}
                 className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 transition ${
                   active === t.id
                     ? 'border-brand-600 text-brand-700'
@@ -147,6 +167,8 @@ function Dashboard({ user, onSignOut }) {
         </div>
       </header>
 
+      <PersistenceBanner />
+
       <main className="max-w-6xl mx-auto px-4 py-6">
         {active === 'my-sprint' && (
           <SprintTab user={user} weekId={weekId} setWeekId={setWeekId} />
@@ -159,6 +181,63 @@ function Dashboard({ user, onSignOut }) {
         {active === 'manage' && <ManageTab />}
         {active === 'downloads' && <DownloadsTab />}
       </main>
+    </div>
+  );
+}
+
+// Single Save control shared by every tab. Highlights when there are unsaved
+// changes; disabled (and quiet) when everything is saved.
+function SaveButton() {
+  const { dirty, saving, save } = useSave();
+
+  if (saving) {
+    return (
+      <span className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white opacity-80">
+        Saving…
+      </span>
+    );
+  }
+
+  if (!dirty) {
+    return (
+      <span className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 border border-slate-200">
+        ✓ Saved
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={save}
+      className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-2 ring-amber-300 animate-pulse hover:bg-amber-600 hover:animate-none"
+    >
+      ● Save changes
+    </button>
+  );
+}
+
+// Warns when the server isn't persisting data (e.g. no KV store configured on
+// Vercel → /tmp is wiped on cold starts), which is the usual cause of data
+// "disappearing" after a while.
+function PersistenceBanner() {
+  const [warn, setWarn] = useState(false);
+
+  useEffect(() => {
+    api
+      .getHealth()
+      .then((h) => setWarn(h && h.persistent === false))
+      .catch(() => {});
+  }, []);
+
+  if (!warn) return null;
+
+  return (
+    <div className="bg-amber-50 border-y border-amber-200 text-amber-800 text-sm">
+      <div className="max-w-6xl mx-auto px-4 py-2">
+        ⚠ This server isn't saving data permanently — entries can be lost on
+        restarts. Connect a KV store (see the README) to persist data.
+      </div>
     </div>
   );
 }

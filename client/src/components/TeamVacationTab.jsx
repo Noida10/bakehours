@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '../api';
 import { useToast } from './Toast';
+import { useTabSave } from './SaveContext';
 import {
   workingDays,
   defaultVacationRange,
@@ -25,8 +26,8 @@ export default function TeamVacationTab({ user }) {
   // data: { member: { iso: code } }
   const [data, setData] = useState(null);
   const [members, setMembers] = useState(BASE_MEMBERS);
+  const [savedAnmol, setSavedAnmol] = useState('{}');
   const [loading, setLoading] = useState(true);
-  const timers = useRef({});
 
   useEffect(() => {
     api
@@ -49,6 +50,7 @@ export default function TeamVacationTab({ user }) {
           }
         });
         setData(merged);
+        setSavedAnmol(JSON.stringify(merged.Anmol || {}));
         setLoading(false);
       })
       .catch(() => {
@@ -62,28 +64,42 @@ export default function TeamVacationTab({ user }) {
     };
   }, [months.join(','), range.start, range.end]);
 
-  const saveCell = useCallback(
-    (day, code) => {
-      api
-        .putVacation(day.monthKey, 'Anmol', { [day.iso]: code === '' ? null : code })
-        .then(() => toast.show('Saved'))
-        .catch(() => toast.show('Save failed', { type: 'error' }));
-    },
-    [toast]
-  );
+  const dirty =
+    !loading && editable && data && JSON.stringify(data.Anmol || {}) !== savedAnmol;
+
+  const saver = useCallback(async () => {
+    const byMonth = {};
+    for (const day of days) {
+      if (!byMonth[day.monthKey]) byMonth[day.monthKey] = {};
+      byMonth[day.monthKey][day.iso] = (data.Anmol || {})[day.iso] || null;
+    }
+    for (const [monthKey, payload] of Object.entries(byMonth)) {
+      await api.putVacation(monthKey, 'Anmol', payload);
+    }
+    setSavedAnmol(JSON.stringify(data.Anmol || {}));
+  }, [days, data]);
+
+  useTabSave(saver, dirty);
+
+  function changeRange(next) {
+    if (
+      dirty &&
+      !window.confirm('You have unsaved changes. Change range without saving?')
+    ) {
+      return;
+    }
+    setRange(next);
+  }
 
   function cycleAnmol(day) {
     if (!editable) return;
-    const current = (data.Anmol || {})[day.iso] || '';
-    const next = VAC_CYCLE[current];
     setData((cur) => {
+      const next = VAC_CYCLE[(cur.Anmol || {})[day.iso] || ''];
       const anmol = { ...(cur.Anmol || {}) };
       if (next === '') delete anmol[day.iso];
       else anmol[day.iso] = next;
       return { ...cur, Anmol: anmol };
     });
-    clearTimeout(timers.current[day.iso]);
-    timers.current[day.iso] = setTimeout(() => saveCell(day, next), 250);
   }
 
   // Per-day availability (people with V are unavailable).
@@ -113,20 +129,25 @@ export default function TeamVacationTab({ user }) {
         <DateField
           label="From"
           value={range.start}
-          onChange={(v) => setRange((r) => ({ ...r, start: v }))}
+          onChange={(v) => changeRange({ ...range, start: v })}
         />
         <DateField
           label="To"
           value={range.end}
-          onChange={(v) => setRange((r) => ({ ...r, end: v }))}
+          onChange={(v) => changeRange({ ...range, end: v })}
         />
         <button
           type="button"
-          onClick={() => setRange(def)}
+          onClick={() => changeRange(def)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
         >
           Reset to next 4 weeks
         </button>
+        {editable && (
+          <span className="text-xs text-slate-400 self-center">
+            Tap your row to set days · save with the header button
+          </span>
+        )}
       </div>
 
       {/* Availability summary cards */}

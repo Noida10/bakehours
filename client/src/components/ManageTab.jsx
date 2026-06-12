@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
 import { useToast } from './Toast';
+import { useTabSave } from './SaveContext';
 import Skeleton from './Skeleton';
 
 // Base members ship in code and cannot be removed; admins can add/remove the
@@ -22,34 +23,30 @@ export default function ManageTab() {
 function ProjectCatalog() {
   const toast = useToast();
   const [projects, setProjects] = useState(null);
-  const timer = useRef(null);
+  const [saved, setSaved] = useState('[]');
 
   useEffect(() => {
     api
       .getCatalog()
-      .then((c) => setProjects(c.projects || []))
+      .then((c) => {
+        setProjects(c.projects || []);
+        setSaved(JSON.stringify(c.projects || []));
+      })
       .catch(() => {
         toast.show('Failed to load projects', { type: 'error' });
         setProjects([]);
       });
   }, []);
 
-  const save = useCallback(
-    (next) => {
-      setProjects(next);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        api
-          .putCatalog(next)
-          .then((d) => {
-            setProjects(d.projects || []);
-            toast.show('Saved');
-          })
-          .catch(() => toast.show('Save failed', { type: 'error' }));
-      }, 500);
-    },
-    [toast]
-  );
+  const dirty = projects != null && JSON.stringify(projects) !== saved;
+
+  const saver = useCallback(async () => {
+    const data = await api.putCatalog(projects || []);
+    setProjects(data.projects || []);
+    setSaved(JSON.stringify(data.projects || []));
+  }, [projects]);
+
+  useTabSave(saver, dirty);
 
   if (!projects) {
     return (
@@ -62,7 +59,7 @@ function ProjectCatalog() {
   return (
     <Panel
       title="Projects"
-      subtitle="Add the projects your team works on. Members pick these from a dropdown when logging hours (they can still type a custom one)."
+      subtitle="Add the projects your team works on, then press Save in the header. Members pick these from a dropdown when logging hours (they can still type a custom one)."
     >
       <div className="space-y-2">
         {projects.length === 0 && (
@@ -77,13 +74,13 @@ function ProjectCatalog() {
               onChange={(e) => {
                 const next = projects.slice();
                 next[i] = { name: e.target.value };
-                save(next);
+                setProjects(next);
               }}
               className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
             />
             <button
               type="button"
-              onClick={() => save(projects.filter((_, j) => j !== i))}
+              onClick={() => setProjects(projects.filter((_, j) => j !== i))}
               className="h-9 w-9 shrink-0 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
               aria-label="Delete project"
             >
@@ -92,13 +89,20 @@ function ProjectCatalog() {
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={() => save([...projects, { name: '' }])}
-        className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
-      >
-        + Add project
-      </button>
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setProjects([...projects, { name: '' }])}
+          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
+        >
+          + Add project
+        </button>
+        {dirty && (
+          <span className="text-xs font-medium text-amber-600">
+            Unsaved — use Save in the header
+          </span>
+        )}
+      </div>
     </Panel>
   );
 }
@@ -155,7 +159,7 @@ function TeamMembers() {
   return (
     <Panel
       title="Team members"
-      subtitle="Add a teammate so they can log in and submit. They'll appear in the team tables and exports."
+      subtitle="Add or remove teammates. These take effect immediately (no Save needed). New members can log in and appear in the team tables and exports."
     >
       <div className="flex flex-wrap gap-2 mb-3">
         {members.map((name) => {

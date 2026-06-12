@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '../api';
-import { useToast } from './Toast';
+import { useTabSave } from './SaveContext';
 import {
   workingDays,
   defaultVacationRange,
@@ -11,14 +11,13 @@ import { VAC_CYCLE, VAC_STYLE, VAC_LABEL } from '../lib/constants';
 import Skeleton from './Skeleton';
 
 export default function VacationTab({ user }) {
-  const toast = useToast();
   const range = useMemo(() => defaultVacationRange(), []);
   const days = useMemo(() => workingDays(range.start, range.end), [range]);
   const months = useMemo(() => monthsBetween(range.start, range.end), [range]);
 
   const [entries, setEntries] = useState({}); // { iso: code }
+  const [saved, setSaved] = useState('{}');
   const [loading, setLoading] = useState(true);
-  const saveTimers = useRef({});
 
   useEffect(() => {
     let active = true;
@@ -32,47 +31,42 @@ export default function VacationTab({ user }) {
           Object.assign(merged, mine);
         });
         setEntries(merged);
+        setSaved(JSON.stringify(merged));
         setLoading(false);
       })
       .catch(() => {
-        if (active) {
-          toast.show('Failed to load vacation data', { type: 'error' });
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       });
     return () => {
       active = false;
     };
   }, [months.join(','), user.name]);
 
-  const saveMonth = useCallback(
-    (monthKey, payload) => {
-      api
-        .putVacation(monthKey, user.name, payload)
-        .then(() => toast.show('Saved'))
-        .catch(() =>
-          toast.show('Save failed', {
-            type: 'error',
-            action: { label: 'Retry', onClick: () => saveMonth(monthKey, payload) },
-          })
-        );
-    },
-    [user.name, toast]
-  );
+  const dirty = !loading && JSON.stringify(entries) !== saved;
+
+  const saver = useCallback(async () => {
+    // Write each month's full set of days (null clears a previously-set day).
+    const byMonth = {};
+    for (const day of days) {
+      if (!byMonth[day.monthKey]) byMonth[day.monthKey] = {};
+      byMonth[day.monthKey][day.iso] = entries[day.iso] || null;
+    }
+    for (const [monthKey, payload] of Object.entries(byMonth)) {
+      await api.putVacation(monthKey, user.name, payload);
+    }
+    setSaved(JSON.stringify(entries));
+  }, [days, entries, user.name]);
+
+  useTabSave(saver, dirty);
 
   function cycle(day) {
-    const current = entries[day.iso] || '';
-    const nextCode = VAC_CYCLE[current];
-    const next = { ...entries };
-    if (nextCode === '') delete next[day.iso];
-    else next[day.iso] = nextCode;
-    setEntries(next);
-
-    // Save just this date for its month (null clears).
-    clearTimeout(saveTimers.current[day.iso]);
-    saveTimers.current[day.iso] = setTimeout(() => {
-      saveMonth(day.monthKey, { [day.iso]: nextCode === '' ? null : nextCode });
-    }, 250);
+    setEntries((cur) => {
+      const nextCode = VAC_CYCLE[cur[day.iso] || ''];
+      const next = { ...cur };
+      if (nextCode === '') delete next[day.iso];
+      else next[day.iso] = nextCode;
+      return next;
+    });
   }
 
   const summary = useMemo(() => {
@@ -93,7 +87,14 @@ export default function VacationTab({ user }) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-        <h2 className="font-semibold text-slate-800 mb-1">My Vacation Plan</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-slate-800">My Vacation Plan</h2>
+          {dirty && (
+            <span className="text-xs font-medium text-amber-600">
+              Unsaved — use Save in the header
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-400 mb-3">
           Tap a day to cycle: empty → V → H → WFH → empty
         </p>

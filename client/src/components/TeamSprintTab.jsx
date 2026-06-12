@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
 import { useToast } from './Toast';
-import { useNow, formatRelative } from '../lib/useRelativeTime';
+import { useTabSave } from './SaveContext';
 import { SPRINT_FIELDS, rowTotal, rowTotalDev } from '../lib/constants';
 import WeekSelector from './WeekSelector';
 import Skeleton from './Skeleton';
@@ -11,16 +11,34 @@ const BASE_MEMBERS = [
   'Harit', 'Sushobhita', 'Divya',
 ];
 
+const EMPTY_ROW = {
+  project: 0, bug: 0, training: 0, other: 0, meeting: 0, lead: 0, off: 0,
+};
+
+function shortStamp(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
+
 export default function TeamSprintTab({ user, weekId, setWeekId }) {
   const toast = useToast();
-  useNow();
   const editable = user.canEdit; // Anmol true, Julien false
 
   const [sprint, setSprint] = useState(null);
-  const [projects, setProjects] = useState(null);
+  const [summary, setSummary] = useState([]); // editable compiled breakdown
   const [members, setMembers] = useState(BASE_MEMBERS);
+  const [saved, setSaved] = useState('');
   const [loading, setLoading] = useState(true);
-  const timers = useRef({});
+
+  const snapshot = (sp, sum) =>
+    JSON.stringify({ anmol: (sp && sp.members.Anmol) || {}, summary: sum });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -30,9 +48,11 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
       api.getRoster().catch(() => ({ devMembers: BASE_MEMBERS })),
     ])
       .then(([s, p, r]) => {
+        const sum = p.compiledSummary || [];
         setSprint(s);
-        setProjects(p);
+        setSummary(sum);
         setMembers(r.devMembers || BASE_MEMBERS);
+        setSaved(snapshot(s, sum));
         setLoading(false);
       })
       .catch(() => {
@@ -45,31 +65,50 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
     load();
   }, [load]);
 
+  const dirty = !loading && editable && snapshot(sprint, summary) !== saved;
+
+  const saver = useCallback(async () => {
+    const fields = {};
+    const anmol = (sprint && sprint.members.Anmol) || EMPTY_ROW;
+    for (const f of SPRINT_FIELDS) fields[f.key] = Number(anmol[f.key]) || 0;
+    const savedRow = await api.putSprint(weekId, 'Anmol', fields);
+    await api.putCompiled(weekId, summary);
+    setSprint((cur) => ({
+      ...cur,
+      members: { ...cur.members, Anmol: savedRow },
+    }));
+    // Recompute the snapshot from the freshly-saved row.
+    setSaved(
+      JSON.stringify({ anmol: savedRow, summary })
+    );
+  }, [weekId, sprint, summary]);
+
+  useTabSave(saver, dirty);
+
+  function guard(action) {
+    if (
+      dirty &&
+      !window.confirm('You have unsaved changes. Continue without saving?')
+    ) {
+      return;
+    }
+    action();
+  }
+
   function updateAnmol(key, raw) {
     let v = raw === '' ? 0 : Number(raw);
     if (!Number.isFinite(v)) v = 0;
     v = Math.max(0, Math.min(5, v));
-    const next = { ...sprint };
-    next.members = { ...next.members, Anmol: { ...next.members.Anmol, [key]: v } };
-    setSprint(next);
-    clearTimeout(timers.current.anmol);
-    timers.current.anmol = setTimeout(() => {
-      const fields = {};
-      for (const f of SPRINT_FIELDS) fields[f.key] = Number(next.members.Anmol[f.key]) || 0;
-      api
-        .putSprint(weekId, 'Anmol', fields)
-        .then((saved) => {
-          setSprint((cur) => ({
-            ...cur,
-            members: { ...cur.members, Anmol: saved },
-          }));
-          toast.show('Saved');
-        })
-        .catch(() => toast.show('Save failed', { type: 'error' }));
-    }, 500);
+    setSprint((cur) => ({
+      ...cur,
+      members: {
+        ...cur.members,
+        Anmol: { ...(cur.members.Anmol || EMPTY_ROW), [key]: v },
+      },
+    }));
   }
 
-  if (loading || !sprint || !projects) {
+  if (loading || !sprint) {
     return (
       <div className="space-y-4">
         <Skeleton rows={2} />
@@ -90,13 +129,13 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <WeekSelector value={weekId} onChange={setWeekId} />
+        <WeekSelector value={weekId} onChange={(w) => guard(() => setWeekId(w))} />
         <button
           type="button"
-          onClick={load}
+          onClick={() => guard(load)}
           className="text-xs text-brand-600 hover:underline"
         >
-          ↻ Refresh
+          ↻ Reload from server
         </button>
       </div>
 
@@ -123,10 +162,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
               const isAnmol = name === 'Anmol';
               const submitted = !!m.lastUpdated;
               return (
-                <tr
-                  key={name}
-                  className={idx % 2 ? 'bg-slate-50' : 'bg-white'}
-                >
+                <tr key={name} className={idx % 2 ? 'bg-slate-50' : 'bg-white'}>
                   <td className="px-3 py-2 font-medium text-slate-800 sticky left-0 bg-inherit">
                     {name}
                     {isAnmol && (
@@ -170,7 +206,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
                     {rowTotalDev(m)}
                   </td>
                   <td className="px-3 py-2 text-right text-xs text-slate-400">
-                    {formatRelative(m.lastUpdated)}
+                    {shortStamp(m.lastUpdated) || '—'}
                   </td>
                 </tr>
               );
@@ -191,49 +227,19 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
       </div>
 
       <TeamProjectBreakdown
-        weekId={weekId}
-        projects={projects}
+        summary={summary}
+        setSummary={setSummary}
         editable={editable}
-        onReload={load}
       />
     </div>
   );
 }
 
-function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
-  const toast = useToast();
-  const [summary, setSummary] = useState(projects.compiledSummary || []);
-  const timer = useRef(null);
-
-  useEffect(() => {
-    setSummary(projects.compiledSummary || []);
-  }, [projects]);
-
-  function save(next) {
-    setSummary(next);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      api
-        .putCompiled(weekId, next)
-        .then(() => toast.show('Saved'))
-        .catch(() => toast.show('Save failed', { type: 'error' }));
-    }, 600);
-  }
-
+function TeamProjectBreakdown({ summary, setSummary, editable }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-slate-800">Team Project Breakdown</h2>
-        {editable && (
-          <button
-            type="button"
-            onClick={() => onReload()}
-            className="text-xs text-brand-600 hover:underline"
-            title="Recompile from member submissions"
-          >
-            ↻ Recompile from members
-          </button>
-        )}
       </div>
       {summary.length === 0 && (
         <p className="text-sm text-slate-400 italic">
@@ -250,7 +256,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
               onChange={(e) => {
                 const next = summary.slice();
                 next[i] = { ...next[i], name: e.target.value };
-                save(next);
+                setSummary(next);
               }}
               className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 read-only:bg-slate-50"
             />
@@ -263,7 +269,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
               onChange={(e) => {
                 const next = summary.slice();
                 next[i] = { ...next[i], days: Number(e.target.value) || 0 };
-                save(next);
+                setSummary(next);
               }}
               className="w-20 rounded-md border border-slate-300 px-2 py-2 text-center text-sm outline-none focus:ring-2 focus:ring-brand-500 read-only:bg-slate-50"
             />
@@ -273,7 +279,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
             {editable && (
               <button
                 type="button"
-                onClick={() => save(summary.filter((_, j) => j !== i))}
+                onClick={() => setSummary(summary.filter((_, j) => j !== i))}
                 className="h-9 w-9 shrink-0 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
                 aria-label="Delete"
               >
@@ -287,7 +293,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
         <button
           type="button"
           onClick={() =>
-            save([...summary, { name: '', days: 0, contributors: [] }])
+            setSummary([...summary, { name: '', days: 0, contributors: [] }])
           }
           className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
         >
