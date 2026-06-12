@@ -40,7 +40,28 @@ npm run build      # builds the client into client/dist
 npm start          # Express serves the API + built client on :3001
 ```
 
-## Data layout
+## Deploying to Vercel
+
+The app is configured for Vercel: the React client is built to static files
+(served by Vercel's CDN) and the Express backend runs as a single serverless
+function (`api/index.js`, fed by `vercel.json` rewrites). Because Vercel's
+filesystem is read-only/ephemeral, data is stored in **Vercel KV** in
+production instead of JSON files.
+
+**One-time setup:**
+
+1. Import the repo into Vercel (no framework preset needed — `vercel.json`
+   defines the build).
+2. In the project's **Storage** tab, create a **KV** store (Upstash Redis)
+   and **connect it** to the project. Vercel injects `KV_REST_API_URL` and
+   `KV_REST_API_TOKEN` automatically.
+3. Deploy. That's it — the build command and routing come from `vercel.json`.
+
+The storage layer auto-detects KV: if those env vars are present it uses KV,
+otherwise it falls back to JSON files (so local `npm run dev` needs no KV).
+No other configuration is required.
+
+## Data layout (local / file mode)
 
 ```
 /data/

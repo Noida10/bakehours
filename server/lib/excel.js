@@ -3,7 +3,12 @@
 
 const ExcelJS = require('exceljs');
 const { DEV_MEMBERS } = require('./names');
-const { loadSprint, loadProjects, loadVacation } = require('./storage');
+const {
+  loadSprint,
+  loadProjects,
+  loadVacation,
+  compileSummary,
+} = require('./storage');
 const {
   weekInfoFromId,
   workingDaysBetween,
@@ -48,12 +53,22 @@ function styleHeaderRow(row) {
   row.height = 22;
 }
 
+// Merge a member's vacation entries across all months in a date range.
+async function loadMergedVacation(startISO, endISO) {
+  const months = monthsBetween(startISO, endISO);
+  const merged = {};
+  for (const month of months) {
+    const data = await loadVacation(month);
+    for (const [name, entries] of Object.entries(data.members)) {
+      merged[name] = { ...(merged[name] || {}), ...entries };
+    }
+  }
+  return merged;
+}
+
 // --- Sprint sheet ------------------------------------------------------
 
-function addSprintSheet(workbook, weekId, sheetName) {
-  const info = weekInfoFromId(weekId);
-  const sprint = loadSprint(weekId);
-  const projects = loadProjects(weekId);
+function addSprintSheet(workbook, info, sprint, projects, sheetName) {
   const ws = workbook.addWorksheet(sheetName || `Week ${info.week}`);
 
   ws.mergeCells('A1', 'J1');
@@ -111,7 +126,7 @@ function addSprintSheet(workbook, weekId, sheetName) {
   styleHeaderRow(pbHeader);
   const summary = (projects.compiledSummary || []).length
     ? projects.compiledSummary
-    : require('./storage').compileSummary(projects.memberBreakdowns);
+    : compileSummary(projects.memberBreakdowns);
   let pbIndex = 0;
   for (const item of summary) {
     const row = ws.addRow([
@@ -134,16 +149,8 @@ function addSprintSheet(workbook, weekId, sheetName) {
 
 // --- Vacation sheet ----------------------------------------------------
 
-function addVacationSheet(workbook, startISO, endISO, sheetName) {
+function addVacationSheet(workbook, startISO, endISO, vacData, sheetName) {
   const days = workingDaysBetween(startISO, endISO);
-  const months = monthsBetween(startISO, endISO);
-  const vacData = {};
-  for (const month of months) {
-    const data = loadVacation(month);
-    for (const [name, entries] of Object.entries(data.members)) {
-      vacData[name] = { ...(vacData[name] || {}), ...entries };
-    }
-  }
 
   const ws = workbook.addWorksheet(sheetName || 'Vacation Planner');
   ws.mergeCells(1, 1, 1, days.length + 1);
@@ -197,16 +204,8 @@ function addVacationSheet(workbook, startISO, endISO, sheetName) {
 
 // --- Availability summary sheet ---------------------------------------
 
-function addAvailabilitySheet(workbook, startISO, endISO) {
+function addAvailabilitySheet(workbook, startISO, endISO, vacData) {
   const days = workingDaysBetween(startISO, endISO);
-  const months = monthsBetween(startISO, endISO);
-  const vacData = {};
-  for (const month of months) {
-    const data = loadVacation(month);
-    for (const [name, entries] of Object.entries(data.members)) {
-      vacData[name] = { ...(vacData[name] || {}), ...entries };
-    }
-  }
 
   const ws = workbook.addWorksheet('Availability Summary');
   ws.mergeCells('A1', 'E1');
@@ -240,7 +239,6 @@ function addAvailabilitySheet(workbook, startISO, endISO) {
       cell.border = thinBorder();
       if (alt) cell.fill = ALT_FILL;
     });
-    // Warn when 2+ people are off on the same day.
     if (off >= 2) {
       row.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDBA74' } };
       row.getCell(4).font = { bold: true };
@@ -260,7 +258,10 @@ function addAvailabilitySheet(workbook, startISO, endISO) {
 
 async function buildSprintWorkbook(weekId) {
   const wb = new ExcelJS.Workbook();
-  addSprintSheet(wb, weekId);
+  const info = weekInfoFromId(weekId);
+  const sprint = await loadSprint(weekId);
+  const projects = await loadProjects(weekId);
+  addSprintSheet(wb, info, sprint, projects);
   return wb;
 }
 
@@ -268,22 +269,29 @@ async function buildSprintRangeWorkbook(weekIds) {
   const wb = new ExcelJS.Workbook();
   for (const weekId of weekIds) {
     const info = weekInfoFromId(weekId);
-    addSprintSheet(wb, weekId, `Week ${info.week}`);
+    const sprint = await loadSprint(weekId);
+    const projects = await loadProjects(weekId);
+    addSprintSheet(wb, info, sprint, projects, `Week ${info.week}`);
   }
   return wb;
 }
 
 async function buildVacationWorkbook(startISO, endISO) {
   const wb = new ExcelJS.Workbook();
-  addVacationSheet(wb, startISO, endISO);
+  const vacData = await loadMergedVacation(startISO, endISO);
+  addVacationSheet(wb, startISO, endISO, vacData);
   return wb;
 }
 
 async function buildCombinedWorkbook(weekId, startISO, endISO) {
   const wb = new ExcelJS.Workbook();
-  addSprintSheet(wb, weekId, 'Sprint Report');
-  addVacationSheet(wb, startISO, endISO, 'Vacation Planner');
-  addAvailabilitySheet(wb, startISO, endISO);
+  const info = weekInfoFromId(weekId);
+  const sprint = await loadSprint(weekId);
+  const projects = await loadProjects(weekId);
+  const vacData = await loadMergedVacation(startISO, endISO);
+  addSprintSheet(wb, info, sprint, projects, 'Sprint Report');
+  addVacationSheet(wb, startISO, endISO, vacData, 'Vacation Planner');
+  addAvailabilitySheet(wb, startISO, endISO, vacData);
   return wb;
 }
 

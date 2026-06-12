@@ -6,6 +6,7 @@ const {
   buildCombinedWorkbook,
 } = require('../lib/excel');
 const { weekInfoFromId } = require('../lib/weeks');
+const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -42,16 +43,16 @@ async function send(res, wb, filename) {
   res.end();
 }
 
-router.get('/sprint/:weekId', async (req, res) => {
+router.get('/sprint/:weekId', asyncHandler(async (req, res) => {
   const weekId = normalizeWeekId(req.params.weekId, req.query.year);
   if (!weekId || !weekInfoFromId(weekId)) {
     return res.status(400).json({ error: 'Invalid week id' });
   }
   const wb = await buildSprintWorkbook(weekId);
   await send(res, wb, `sprint-${weekId}.xlsx`);
-});
+}));
 
-router.get('/sprint-range', async (req, res) => {
+router.get('/sprint-range', asyncHandler(async (req, res) => {
   const year = req.query.year ? Number(req.query.year) : new Date().getUTCFullYear();
   const from = normalizeWeekId(req.query.from, year);
   const to = normalizeWeekId(req.query.to, year);
@@ -66,18 +67,18 @@ router.get('/sprint-range', async (req, res) => {
   }
   const wb = await buildSprintRangeWorkbook(ids);
   await send(res, wb, `sprint-${from}-to-${to}.xlsx`);
-});
+}));
 
-router.get('/vacation', async (req, res) => {
+router.get('/vacation', asyncHandler(async (req, res) => {
   const { start, end } = req.query;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start || '') || !/^\d{4}-\d{2}-\d{2}$/.test(end || '')) {
     return res.status(400).json({ error: 'Invalid date range' });
   }
   const wb = await buildVacationWorkbook(start, end);
   await send(res, wb, `vacation-${start}-to-${end}.xlsx`);
-});
+}));
 
-router.get('/combined', async (req, res) => {
+router.get('/combined', asyncHandler(async (req, res) => {
   const weekId = normalizeWeekId(req.query.week, req.query.year);
   const { vacStart, vacEnd } = req.query;
   if (!weekId || !weekInfoFromId(weekId)) {
@@ -88,6 +89,6 @@ router.get('/combined', async (req, res) => {
   }
   const wb = await buildCombinedWorkbook(weekId, vacStart, vacEnd);
   await send(res, wb, `combined-${weekId}.xlsx`);
-});
+}));
 
 module.exports = router;

@@ -1,31 +1,9 @@
-// JSON-file storage layer. Reads/writes structured files under /data,
+// Domain storage layer. Builds on the pluggable key/value store (`store.js`),
 // auto-creating empty structures (with all dev members) when missing.
 
-const fs = require('fs');
-const path = require('path');
+const { read, write } = require('./store');
 const { DEV_MEMBERS } = require('./names');
 const { weekInfoFromId } = require('./weeks');
-
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const SPRINT_DIR = path.join(DATA_DIR, 'sprints');
-const VACATION_DIR = path.join(DATA_DIR, 'vacations');
-const PROJECT_DIR = path.join(DATA_DIR, 'projects');
-
-for (const dir of [DATA_DIR, SPRINT_DIR, VACATION_DIR, PROJECT_DIR]) {
-  fs.mkdirSync(dir, { recursive: true });
-}
-
-function readJSON(file) {
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-function writeJSON(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
 
 function emptySprintMember() {
   return {
@@ -42,15 +20,11 @@ function emptySprintMember() {
 
 // ---- Sprints ----------------------------------------------------------
 
-function sprintFile(weekId) {
-  return path.join(SPRINT_DIR, `${weekId}.json`);
-}
-
-function loadSprint(weekId) {
+async function loadSprint(weekId) {
   const info = weekInfoFromId(weekId);
   if (!info) return null;
-  const file = sprintFile(weekId);
-  let data = readJSON(file);
+  let data = await read('sprints', weekId);
+  let changed = false;
   if (!data) {
     data = {
       week: info.week,
@@ -59,22 +33,24 @@ function loadSprint(weekId) {
       endDate: info.endDate,
       members: {},
     };
+    changed = true;
   }
-  // Ensure every dev member has a row.
-  let changed = !data.members;
-  if (!data.members) data.members = {};
+  if (!data.members) {
+    data.members = {};
+    changed = true;
+  }
   for (const name of DEV_MEMBERS) {
     if (!data.members[name]) {
       data.members[name] = emptySprintMember();
       changed = true;
     }
   }
-  if (changed) writeJSON(file, data);
+  if (changed) await write('sprints', weekId, data);
   return data;
 }
 
-function saveSprintMember(weekId, member, fields) {
-  const data = loadSprint(weekId);
+async function saveSprintMember(weekId, member, fields) {
+  const data = await loadSprint(weekId);
   if (!data) return null;
   const numericKeys = [
     'project', 'bug', 'training', 'other', 'meeting', 'lead', 'off',
@@ -88,39 +64,38 @@ function saveSprintMember(weekId, member, fields) {
   }
   row.lastUpdated = new Date().toISOString();
   data.members[member] = row;
-  writeJSON(sprintFile(weekId), data);
+  await write('sprints', weekId, data);
   return row;
 }
 
 // ---- Vacations --------------------------------------------------------
 
-function vacationFile(month) {
-  return path.join(VACATION_DIR, `${month}.json`);
-}
-
-function loadVacation(month) {
+async function loadVacation(month) {
   if (!/^\d{4}-\d{2}$/.test(month)) return null;
-  const file = vacationFile(month);
-  let data = readJSON(file);
+  let data = await read('vacations', month);
+  let changed = false;
   if (!data) {
     data = { month, members: {} };
+    changed = true;
   }
-  if (!data.members) data.members = {};
-  let changed = false;
+  if (!data.members) {
+    data.members = {};
+    changed = true;
+  }
   for (const name of DEV_MEMBERS) {
     if (!data.members[name]) {
       data.members[name] = {};
       changed = true;
     }
   }
-  if (changed) writeJSON(file, data);
+  if (changed) await write('vacations', month, data);
   return data;
 }
 
 const VALID_VAC = ['V', 'H', 'WFH'];
 
-function saveVacationMember(month, member, entries) {
-  const data = loadVacation(month);
+async function saveVacationMember(month, member, entries) {
+  const data = await loadVacation(month);
   if (!data) return null;
   const current = data.members[member] || {};
   for (const [date, code] of Object.entries(entries || {})) {
@@ -132,21 +107,16 @@ function saveVacationMember(month, member, entries) {
     }
   }
   data.members[member] = current;
-  writeJSON(vacationFile(month), data);
+  await write('vacations', month, data);
   return current;
 }
 
 // ---- Projects ---------------------------------------------------------
 
-function projectFile(weekId) {
-  return path.join(PROJECT_DIR, `${weekId}.json`);
-}
-
-function loadProjects(weekId) {
+async function loadProjects(weekId) {
   const info = weekInfoFromId(weekId);
   if (!info) return null;
-  const file = projectFile(weekId);
-  let data = readJSON(file);
+  let data = await read('projects', weekId);
   if (!data) {
     data = { week: info.week, memberBreakdowns: {}, compiledSummary: [] };
   }
@@ -178,32 +148,31 @@ function compileSummary(memberBreakdowns) {
   return [...map.values()].sort((a, b) => b.days - a.days);
 }
 
-function saveProjectMember(weekId, member, entries) {
-  const data = loadProjects(weekId);
+async function saveProjectMember(weekId, member, entries) {
+  const data = await loadProjects(weekId);
   if (!data) return null;
   const clean = (entries || [])
     .map((e) => ({ name: String(e.name || '').trim(), days: Number(e.days) || 0 }))
     .filter((e) => e.name !== '' || e.days > 0);
   data.memberBreakdowns[member] = clean;
   data.compiledSummary = compileSummary(data.memberBreakdowns);
-  writeJSON(projectFile(weekId), data);
+  await write('projects', weekId, data);
   return data;
 }
 
-function saveCompiledSummary(weekId, summary) {
-  const data = loadProjects(weekId);
+async function saveCompiledSummary(weekId, summary) {
+  const data = await loadProjects(weekId);
   if (!data) return null;
   data.compiledSummary = (summary || []).map((s) => ({
     name: String(s.name || '').trim(),
     days: Number(s.days) || 0,
     contributors: Array.isArray(s.contributors) ? s.contributors : [],
   }));
-  writeJSON(projectFile(weekId), data);
+  await write('projects', weekId, data);
   return data;
 }
 
 module.exports = {
-  DATA_DIR,
   loadSprint,
   saveSprintMember,
   loadVacation,

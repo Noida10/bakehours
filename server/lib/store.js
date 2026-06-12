@@ -1,0 +1,53 @@
+// Pluggable key/value persistence.
+//   - On Vercel (KV env vars present): Vercel KV (Upstash Redis).
+//   - Locally / anywhere else: JSON files under /data.
+// Keys are namespaced as "<namespace>:<id>", e.g. "sprints:2026-W22".
+
+const fs = require('fs');
+const path = require('path');
+
+const useKV = !!(
+  process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
+);
+
+let kv = null;
+if (useKV) {
+  // Lazy require so local dev doesn't need the package installed.
+  kv = require('@vercel/kv').kv;
+}
+
+const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const NAMESPACES = ['sprints', 'vacations', 'projects'];
+
+if (!useKV) {
+  for (const ns of NAMESPACES) {
+    fs.mkdirSync(path.join(DATA_DIR, ns), { recursive: true });
+  }
+}
+
+function fileFor(namespace, id) {
+  return path.join(DATA_DIR, namespace, `${id}.json`);
+}
+
+async function read(namespace, id) {
+  if (useKV) {
+    // @vercel/kv auto-deserializes stored JSON.
+    return (await kv.get(`${namespace}:${id}`)) || null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(fileFor(namespace, id), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+async function write(namespace, id, data) {
+  if (useKV) {
+    await kv.set(`${namespace}:${id}`, data);
+    return;
+  }
+  fs.mkdirSync(path.join(DATA_DIR, namespace), { recursive: true });
+  fs.writeFileSync(fileFor(namespace, id), JSON.stringify(data, null, 2));
+}
+
+module.exports = { read, write, useKV, DATA_DIR };
