@@ -1,17 +1,17 @@
 const express = require('express');
-const { validateName, getRoster } = require('../lib/roster');
+const { validateLogin, getRoster } = require('../lib/roster');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
 
-// Validate a freely-typed name, returning the canonical name + role.
+// Validate a name typed at the sign-in screen (admins must use their code).
 router.get(
   '/validate-name',
   asyncHandler(async (req, res) => {
-    const result = await validateName(req.query.name || '');
+    const result = await validateLogin(req.query.name || '');
     if (!result.valid) {
-      const { allNames } = await getRoster();
-      return res.json({ valid: false, validNames: allNames });
+      const { loginNames } = await getRoster();
+      return res.json({ valid: false, validNames: loginNames });
     }
     res.json({
       valid: true,

@@ -44,8 +44,17 @@ async function getDevMembers() {
   return (await getRoster()).devMembers;
 }
 
+// Identity resolution (used by the auth middleware + data routes). Resolves
+// against the FULL roster including admins, so a logged-in admin whose canonical
+// name "Anmol"/"Julien" is sent on every request is recognised.
 async function resolveName(input) {
-  // Match members by name; admins (Anmol/Julien) only via their alias codes.
+  const { allNames } = await getRoster();
+  return resolveNameWith(input, allNames, ALIASES);
+}
+
+// Login resolution (used only by the sign-in screen). Admins can ONLY sign in
+// via their alias codes (anmol224 / julien779); typing their name is rejected.
+async function resolveLogin(input) {
   const { loginNames } = await getRoster();
   return resolveNameWith(input, loginNames, ALIASES);
 }
@@ -55,12 +64,7 @@ async function hasDataRow(name) {
   return devMembers.includes(name);
 }
 
-async function validateName(input) {
-  const canonicalName = await resolveName(input);
-  if (!canonicalName) {
-    return { valid: false, canonicalName: null, role: null };
-  }
-  const { devMembers } = await getRoster();
+function describe(canonicalName, devMembers) {
   return {
     valid: true,
     canonicalName,
@@ -69,6 +73,22 @@ async function validateName(input) {
     hasDataRow: devMembers.includes(canonicalName),
     isAdmin: ADMINS.includes(canonicalName),
   };
+}
+
+// Identity check (middleware). Accepts canonical admin names.
+async function validateName(input) {
+  const canonicalName = await resolveName(input);
+  if (!canonicalName) return { valid: false, canonicalName: null, role: null };
+  const { devMembers } = await getRoster();
+  return describe(canonicalName, devMembers);
+}
+
+// Login check (sign-in screen). Admins must use their alias code.
+async function validateLogin(input) {
+  const canonicalName = await resolveLogin(input);
+  if (!canonicalName) return { valid: false, canonicalName: null, role: null };
+  const { devMembers } = await getRoster();
+  return describe(canonicalName, devMembers);
 }
 
 // --- Mutations (admin only, enforced in routes) ------------------------
@@ -130,6 +150,7 @@ module.exports = {
   resolveName,
   hasDataRow,
   validateName,
+  validateLogin,
   addMember,
   removeMember,
   invalidate,
