@@ -1,0 +1,10 @@
+node_modules/
+client/node_modules/
+client/dist/
+npm-debug.log*
+.DS_Store
+
+# Runtime data files (keep the folders, ignore generated JSON).
+data/sprints/*.json
+data/vacations/*.json
+data/projects/*.json
