@@ -31,6 +31,7 @@ export default function SprintTab({ user, weekId, setWeekId }) {
 
   const [row, setRow] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState(null);
 
@@ -39,8 +40,12 @@ export default function SprintTab({ user, weekId, setWeekId }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([api.getSprint(weekId), api.getProjects(weekId)])
-      .then(([sprint, proj]) => {
+    Promise.all([
+      api.getSprint(weekId),
+      api.getProjects(weekId),
+      api.getCatalog().catch(() => ({ projects: [] })),
+    ])
+      .then(([sprint, proj, cat]) => {
         if (!active) return;
         const mine = sprint.members[user.name] || {
           project: 0, bug: 0, training: 0, other: 0, meeting: 0, lead: 0, off: 0,
@@ -48,6 +53,7 @@ export default function SprintTab({ user, weekId, setWeekId }) {
         setRow(mine);
         setLastSaved(mine.lastUpdated || null);
         setProjects(proj.memberBreakdowns[user.name] || []);
+        setCatalog((cat.projects || []).map((p) => p.name));
         setLoading(false);
       })
       .catch(() => {
@@ -175,8 +181,17 @@ export default function SprintTab({ user, weekId, setWeekId }) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
         <h2 className="font-semibold text-slate-800 mb-1">What did you work on?</h2>
         <p className="text-xs text-slate-400 mb-3">
-          Helps the admin compile the team-wide project summary.
+          Pick a project from the list or type your own. Helps the admin
+          compile the team-wide project summary.
         </p>
+
+        {/* Shared project names for the dropdown (members can still type custom). */}
+        <datalist id="project-catalog">
+          {catalog.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
+
         <div className="space-y-2">
           {projects.length === 0 && (
             <p className="text-sm text-slate-400 italic">No projects added yet.</p>
@@ -185,8 +200,9 @@ export default function SprintTab({ user, weekId, setWeekId }) {
             <div key={i} className="flex items-center gap-2">
               <input
                 type="text"
+                list="project-catalog"
                 value={p.name}
-                placeholder="e.g. Outlook Plugin – Email attachment"
+                placeholder="Select or type a project…"
                 onChange={(e) => {
                   const next = projects.slice();
                   next[i] = { ...next[i], name: e.target.value };
@@ -207,6 +223,7 @@ export default function SprintTab({ user, weekId, setWeekId }) {
                 className="w-20 rounded-md border border-slate-300 px-2 py-2 text-center text-sm outline-none focus:ring-2 focus:ring-brand-500"
               />
               <button
+                type="button"
                 onClick={() =>
                   updateProjects(projects.filter((_, j) => j !== i))
                 }
@@ -219,6 +236,7 @@ export default function SprintTab({ user, weekId, setWeekId }) {
           ))}
         </div>
         <button
+          type="button"
           onClick={() =>
             updateProjects([...projects, { name: '', days: 0 }])
           }

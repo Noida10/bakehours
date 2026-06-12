@@ -105,6 +105,7 @@ export default function VacationTab({ user }) {
               const weekGap = day.dayName === 'Mon' && i > 0 ? 'ml-3' : 'ml-1.5';
               return (
                 <button
+                  type="button"
                   key={day.iso}
                   onClick={() => cycle(day)}
                   className={`${weekGap} h-14 w-14 shrink-0 rounded-lg border border-slate-200 text-xs font-semibold flex flex-col items-center justify-center transition ${

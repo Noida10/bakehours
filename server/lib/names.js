@@ -1,9 +1,9 @@
-// Canonical team roster, roles, and name-matching logic.
-// Shared rules: case-insensitive, trimmed, fuzzy-friendly matching.
+// Pure roster helpers and name-matching primitives. The *effective* roster
+// (which can grow when admins add members) lives in roster.js; this module
+// holds the fixed parts and stateless matching logic.
 
-// Dev team members each get a sprint/vacation data row.
-// Order here is the display order used in admin team tables.
-const DEV_MEMBERS = [
+// The dev team members that ship by default. Admins can add more at runtime.
+const BASE_DEV_MEMBERS = [
   'Anmol',
   'Vinay',
   'Roshan',
@@ -15,9 +15,16 @@ const DEV_MEMBERS = [
 ];
 
 // Julien is a view-only admin (manager) with no data row.
-const ALL_NAMES = [...DEV_MEMBERS, 'Julien'];
-
 const ADMINS = ['Anmol', 'Julien'];
+
+// Login aliases → canonical name. Lets people sign in with their handle or
+// email local-part while reports still show the clean canonical name.
+const ALIASES = {
+  anmol224: 'Anmol',
+  'anmol224@gmail.com': 'Anmol',
+  julien779: 'Julien',
+  'julien779@gmail.com': 'Julien',
+};
 
 function roleFor(canonicalName) {
   if (canonicalName === 'Anmol') return 'admin'; // editing admin (has data row)
@@ -25,13 +32,9 @@ function roleFor(canonicalName) {
   return 'member';
 }
 
-// Anmol can edit; Julien cannot edit anything.
+// Anmol can edit his own data; Julien cannot edit member data (view-only).
 function canEdit(canonicalName) {
   return canonicalName !== 'Julien';
-}
-
-function hasDataRow(canonicalName) {
-  return DEV_MEMBERS.includes(canonicalName);
 }
 
 // Levenshtein distance for fuzzy matching of typed names.
@@ -54,29 +57,31 @@ function levenshtein(a, b) {
   return prev[n];
 }
 
-// Resolve a freely-typed name to a canonical roster name, or null.
-function resolveName(input) {
+// Resolve a freely-typed name against a roster + alias map. Pure function.
+function resolveNameWith(input, names, aliases = {}) {
   if (!input || typeof input !== 'string') return null;
   const cleaned = input.trim().toLowerCase();
   if (!cleaned) return null;
 
-  // 1. Exact (case-insensitive, trimmed) match.
-  for (const name of ALL_NAMES) {
+  // 1. Alias table (handles / emails).
+  if (aliases[cleaned]) return aliases[cleaned];
+
+  // 2. Exact (case-insensitive, trimmed) match.
+  for (const name of names) {
     if (name.toLowerCase() === cleaned) return name;
   }
 
-  // 2. Prefix / contains match for partial typing.
-  for (const name of ALL_NAMES) {
+  // 3. Prefix / contains match for partial typing.
+  for (const name of names) {
     const lower = name.toLowerCase();
     if (lower.startsWith(cleaned) || cleaned.startsWith(lower)) return name;
   }
 
-  // 3. Fuzzy match using Levenshtein distance, scaled to name length.
+  // 4. Fuzzy match using Levenshtein distance, scaled to name length.
   let best = null;
   let bestDist = Infinity;
-  for (const name of ALL_NAMES) {
+  for (const name of names) {
     const dist = levenshtein(cleaned, name.toLowerCase());
-    // Allow ~30% of the name length in edits (min 1, max 3).
     const threshold = Math.min(3, Math.max(1, Math.floor(name.length * 0.3)));
     if (dist <= threshold && dist < bestDist) {
       best = name;
@@ -86,28 +91,12 @@ function resolveName(input) {
   return best;
 }
 
-function validateName(input) {
-  const canonicalName = resolveName(input);
-  if (!canonicalName) {
-    return { valid: false, canonicalName: null, role: null };
-  }
-  return {
-    valid: true,
-    canonicalName,
-    role: roleFor(canonicalName),
-    canEdit: canEdit(canonicalName),
-    hasDataRow: hasDataRow(canonicalName),
-    isAdmin: ADMINS.includes(canonicalName),
-  };
-}
-
 module.exports = {
-  DEV_MEMBERS,
-  ALL_NAMES,
+  BASE_DEV_MEMBERS,
   ADMINS,
+  ALIASES,
   roleFor,
   canEdit,
-  hasDataRow,
-  resolveName,
-  validateName,
+  levenshtein,
+  resolveNameWith,
 };

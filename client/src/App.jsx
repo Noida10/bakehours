@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { api, setApiUser } from './api';
 import { ToastProvider } from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 import EntryScreen from './components/EntryScreen';
 import SprintTab from './components/SprintTab';
 import VacationTab from './components/VacationTab';
 import TeamSprintTab from './components/TeamSprintTab';
 import TeamVacationTab from './components/TeamVacationTab';
+import ManageTab from './components/ManageTab';
 import DownloadsTab from './components/DownloadsTab';
 import { currentWeekInfo } from './lib/weeks';
 
@@ -65,11 +67,13 @@ export default function App() {
 
   return (
     <ToastProvider>
-      {!user ? (
-        <EntryScreen onEnter={handleEnter} />
-      ) : (
-        <Dashboard user={user} onSignOut={signOut} />
-      )}
+      <ErrorBoundary>
+        {!user ? (
+          <EntryScreen onEnter={handleEnter} />
+        ) : (
+          <Dashboard user={user} onSignOut={signOut} />
+        )}
+      </ErrorBoundary>
     </ToastProvider>
   );
 }
@@ -81,6 +85,7 @@ function Dashboard({ user, onSignOut }) {
     ? [
         { id: 'team-sprint', label: 'Team Sprint Report' },
         { id: 'team-vacation', label: 'Team Vacation Planner' },
+        { id: 'manage', label: 'Manage' },
         { id: 'downloads', label: 'Downloads' },
       ]
     : [
@@ -148,6 +153,7 @@ function Dashboard({ user, onSignOut }) {
           <TeamSprintTab user={user} weekId={weekId} setWeekId={setWeekId} />
         )}
         {active === 'team-vacation' && <TeamVacationTab user={user} />}
+        {active === 'manage' && <ManageTab />}
         {active === 'downloads' && <DownloadsTab />}
       </main>
     </div>

@@ -2,7 +2,7 @@
 // auto-creating empty structures (with all dev members) when missing.
 
 const { read, write } = require('./store');
-const { DEV_MEMBERS } = require('./names');
+const { getDevMembers } = require('./roster');
 const { weekInfoFromId } = require('./weeks');
 
 function emptySprintMember() {
@@ -39,7 +39,7 @@ async function loadSprint(weekId) {
     data.members = {};
     changed = true;
   }
-  for (const name of DEV_MEMBERS) {
+  for (const name of await getDevMembers()) {
     if (!data.members[name]) {
       data.members[name] = emptySprintMember();
       changed = true;
@@ -82,7 +82,7 @@ async function loadVacation(month) {
     data.members = {};
     changed = true;
   }
-  for (const name of DEV_MEMBERS) {
+  for (const name of await getDevMembers()) {
     if (!data.members[name]) {
       data.members[name] = {};
       changed = true;
@@ -122,7 +122,7 @@ async function loadProjects(weekId) {
   }
   if (!data.memberBreakdowns) data.memberBreakdowns = {};
   if (!data.compiledSummary) data.compiledSummary = [];
-  for (const name of DEV_MEMBERS) {
+  for (const name of await getDevMembers()) {
     if (!data.memberBreakdowns[name]) data.memberBreakdowns[name] = [];
   }
   return data;

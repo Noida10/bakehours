@@ -60,6 +60,20 @@ export const api = {
       method: 'PUT',
       body: { compiledSummary },
     }),
+
+  // Shared project catalog.
+  getCatalog: () => request('/api/catalog'),
+  putCatalog: (projects) =>
+    request('/api/catalog', { method: 'PUT', body: { projects } }),
+
+  // Roster.
+  getRoster: () => request('/api/roster'),
+  addMember: (name) =>
+    request('/api/roster-admin/members', { method: 'POST', body: { name } }),
+  removeMember: (name) =>
+    request(`/api/roster-admin/members/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Build a download URL; the name is appended as a query param because

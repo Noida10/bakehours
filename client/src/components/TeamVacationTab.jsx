@@ -9,7 +9,7 @@ import {
 import { VAC_CYCLE, VAC_STYLE, VAC_LABEL } from '../lib/constants';
 import Skeleton from './Skeleton';
 
-const DEV_MEMBERS = [
+const BASE_MEMBERS = [
   'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
   'Harit', 'Sushobhita', 'Divya',
 ];
@@ -24,8 +24,16 @@ export default function TeamVacationTab({ user }) {
 
   // data: { member: { iso: code } }
   const [data, setData] = useState(null);
+  const [members, setMembers] = useState(BASE_MEMBERS);
   const [loading, setLoading] = useState(true);
   const timers = useRef({});
+
+  useEffect(() => {
+    api
+      .getRoster()
+      .then((r) => setMembers(r.devMembers || BASE_MEMBERS))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -34,7 +42,7 @@ export default function TeamVacationTab({ user }) {
       .then((results) => {
         if (!active) return;
         const merged = {};
-        DEV_MEMBERS.forEach((name) => (merged[name] = {}));
+        members.forEach((name) => (merged[name] = {}));
         results.forEach((monthData) => {
           for (const [name, entries] of Object.entries(monthData.members || {})) {
             merged[name] = { ...(merged[name] || {}), ...entries };
@@ -83,12 +91,12 @@ export default function TeamVacationTab({ user }) {
     if (!data) return [];
     return days.map((day) => {
       let off = 0;
-      DEV_MEMBERS.forEach((name) => {
+      members.forEach((name) => {
         if ((data[name] || {})[day.iso] === 'V') off++;
       });
-      return { ...day, off, available: DEV_MEMBERS.length - off };
+      return { ...day, off, available: members.length - off };
     });
-  }, [days, data]);
+  }, [days, data, members]);
 
   if (loading || !data) {
     return (
@@ -113,6 +121,7 @@ export default function TeamVacationTab({ user }) {
           onChange={(v) => setRange((r) => ({ ...r, end: v }))}
         />
         <button
+          type="button"
           onClick={() => setRange(def)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
         >
@@ -136,10 +145,10 @@ export default function TeamVacationTab({ user }) {
           {(() => {
             const min = availability.reduce(
               (acc, d) => (d.available < acc.available ? d : acc),
-              availability[0] || { available: DEV_MEMBERS.length }
+              availability[0] || { available: members.length }
             );
             return min && min.dayName
-              ? `${min.dayName} ${min.label}: ${min.available}/${DEV_MEMBERS.length} available`
+              ? `${min.dayName} ${min.label}: ${min.available}/${members.length} available`
               : '—';
           })()}
         </SummaryCard>
@@ -165,7 +174,7 @@ export default function TeamVacationTab({ user }) {
             </tr>
           </thead>
           <tbody>
-            {DEV_MEMBERS.map((name, idx) => {
+            {members.map((name, idx) => {
               const isAnmol = name === 'Anmol';
               return (
                 <tr key={name} className={idx % 2 ? 'bg-slate-50' : 'bg-white'}>

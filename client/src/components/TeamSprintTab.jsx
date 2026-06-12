@@ -6,7 +6,7 @@ import { SPRINT_FIELDS, rowTotal, rowTotalDev } from '../lib/constants';
 import WeekSelector from './WeekSelector';
 import Skeleton from './Skeleton';
 
-const DEV_MEMBERS = [
+const BASE_MEMBERS = [
   'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
   'Harit', 'Sushobhita', 'Divya',
 ];
@@ -18,15 +18,21 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
 
   const [sprint, setSprint] = useState(null);
   const [projects, setProjects] = useState(null);
+  const [members, setMembers] = useState(BASE_MEMBERS);
   const [loading, setLoading] = useState(true);
   const timers = useRef({});
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([api.getSprint(weekId), api.getProjects(weekId)])
-      .then(([s, p]) => {
+    Promise.all([
+      api.getSprint(weekId),
+      api.getProjects(weekId),
+      api.getRoster().catch(() => ({ devMembers: BASE_MEMBERS })),
+    ])
+      .then(([s, p, r]) => {
         setSprint(s);
         setProjects(p);
+        setMembers(r.devMembers || BASE_MEMBERS);
         setLoading(false);
       })
       .catch(() => {
@@ -74,7 +80,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
 
   const totals = {};
   for (const f of SPRINT_FIELDS) totals[f.key] = 0;
-  DEV_MEMBERS.forEach((name) => {
+  members.forEach((name) => {
     const m = sprint.members[name] || {};
     for (const f of SPRINT_FIELDS) totals[f.key] += Number(m[f.key]) || 0;
   });
@@ -86,6 +92,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <WeekSelector value={weekId} onChange={setWeekId} />
         <button
+          type="button"
           onClick={load}
           className="text-xs text-brand-600 hover:underline"
         >
@@ -111,7 +118,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
             </tr>
           </thead>
           <tbody>
-            {DEV_MEMBERS.map((name, idx) => {
+            {members.map((name, idx) => {
               const m = sprint.members[name] || {};
               const isAnmol = name === 'Anmol';
               const submitted = !!m.lastUpdated;
@@ -219,6 +226,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
         <h2 className="font-semibold text-slate-800">Team Project Breakdown</h2>
         {editable && (
           <button
+            type="button"
             onClick={() => onReload()}
             className="text-xs text-brand-600 hover:underline"
             title="Recompile from member submissions"
@@ -264,6 +272,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
             </span>
             {editable && (
               <button
+                type="button"
                 onClick={() => save(summary.filter((_, j) => j !== i))}
                 className="h-9 w-9 shrink-0 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
                 aria-label="Delete"
@@ -276,6 +285,7 @@ function TeamProjectBreakdown({ weekId, projects, editable, onReload }) {
       </div>
       {editable && (
         <button
+          type="button"
           onClick={() =>
             save([...summary, { name: '', days: 0, contributors: [] }])
           }

@@ -1,7 +1,7 @@
 const express = require('express');
 const { loadVacation, saveVacationMember } = require('../lib/storage');
 const { canWriteMember } = require('../lib/auth');
-const { resolveName, hasDataRow } = require('../lib/names');
+const { resolveName, hasDataRow } = require('../lib/roster');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
@@ -26,8 +26,8 @@ router.get(
 router.put(
   '/:month/:member',
   asyncHandler(async (req, res) => {
-    const member = resolveName(req.params.member) || req.params.member;
-    if (!hasDataRow(member)) {
+    const member = (await resolveName(req.params.member)) || req.params.member;
+    if (!(await hasDataRow(member))) {
       return res.status(400).json({ error: 'Unknown member' });
     }
     if (!canWriteMember(req, member)) {

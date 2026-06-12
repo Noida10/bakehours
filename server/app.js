@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const { identify, requireUser } = require('./lib/auth');
+const { identify, requireUser, requireAdmin } = require('./lib/auth');
 const { mode: storageMode } = require('./lib/store');
 
 const authRoutes = require('./routes/auth');
@@ -9,6 +9,8 @@ const sprintRoutes = require('./routes/sprint');
 const vacationRoutes = require('./routes/vacation');
 const projectRoutes = require('./routes/projects');
 const downloadRoutes = require('./routes/download');
+const rosterRoutes = require('./routes/roster');
+const catalogRoutes = require('./routes/catalog');
 
 const app = express();
 // API payloads are live data — never let the browser/CDN serve a cached or
@@ -39,6 +41,11 @@ app.use('/api/sprint', requireUser, sprintRoutes);
 app.use('/api/vacation', requireUser, vacationRoutes);
 app.use('/api/projects', requireUser, projectRoutes);
 app.use('/api/download', requireUser, downloadRoutes);
+
+// Shared project catalog (read: any user; write: admin) and roster
+// management (admin only — both Anmol and Julien).
+app.use('/api/catalog', requireUser, catalogRoutes);
+app.use('/api/roster-admin', requireUser, requireAdmin, rosterRoutes);
 
 // Unknown API routes return JSON 404 (matched before static fallback).
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
