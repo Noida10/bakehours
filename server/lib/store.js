@@ -81,4 +81,24 @@ const mode = useKV ? 'kv' : useBlob ? 'blob' : 'file';
 // Durable across requests? KV/Blob always; file mode only off-Vercel.
 const persistent = useKV || useBlob || !process.env.VERCEL;
 
+// Startup banner — visible in Vercel's function logs so the active backend
+// (and any misconfiguration) is obvious at a glance.
+const tokenVars = Object.keys(process.env).filter((k) =>
+  /READ_WRITE_TOKEN$/.test(k)
+);
+console.log(
+  `[store] backend=${mode} persistent=${persistent} onVercel=${!!process.env.VERCEL}`
+);
+console.log(
+  `[store] KV vars present=${useKV} | blob token vars=${
+    tokenVars.length ? tokenVars.join(',') : '(none)'
+  }`
+);
+if (mode === 'file' && process.env.VERCEL) {
+  console.warn(
+    '[store] WARNING: on Vercel in FILE mode — data is written to /tmp and is ' +
+      'WIPED on cold starts. Connect a Blob or KV store and REDEPLOY to persist.'
+  );
+}
+
 module.exports = { read, write, useKV, useBlob, mode, persistent, DATA_DIR };

@@ -6,17 +6,26 @@ const { put, list } = require('@vercel/blob');
 
 // Resolve the read/write token: the standard injected var, any custom
 // "*_READ_WRITE_TOKEN" (Vercel names it after the store), or an explicit one.
-function findToken() {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+// Returns the env var NAME so we can log it (never the secret value).
+function findTokenKey() {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return 'BLOB_READ_WRITE_TOKEN';
   const keys = Object.keys(process.env);
-  const blobKey =
+  return (
     keys.find((k) => /READ_WRITE_TOKEN$/.test(k) && /BLOB/i.test(k)) ||
-    keys.find((k) => /READ_WRITE_TOKEN$/.test(k));
-  return blobKey ? process.env[blobKey] : undefined;
+    keys.find((k) => /READ_WRITE_TOKEN$/.test(k)) ||
+    null
+  );
 }
 
-const TOKEN = findToken();
+const TOKEN_KEY = findTokenKey();
+const TOKEN = TOKEN_KEY ? process.env[TOKEN_KEY] : undefined;
 const available = !!TOKEN;
+
+if (available) {
+  console.log(`[blob] token detected from env var "${TOKEN_KEY}" (len=${TOKEN.length})`);
+} else {
+  console.log('[blob] no *_READ_WRITE_TOKEN env var found — Blob backend unavailable');
+}
 
 // Public origin of the store (e.g. https://xxxx.public.blob.vercel-storage.com).
 // Cached per instance so reads are a direct fetch rather than a list call.
@@ -47,44 +56,57 @@ async function read(namespace, id) {
   const p = pathFor(namespace, id);
   const origin = await ensureBase();
   if (origin) {
-    const res = await fetch(bust(`${origin}/${p}`), { cache: 'no-store' });
-    if (res.status === 404) return null;
-    if (res.ok) {
-      try {
-        return await res.json();
-      } catch {
+    try {
+      const res = await fetch(bust(`${origin}/${p}`), { cache: 'no-store' });
+      if (res.status === 404) {
+        console.log(`[blob] read ${p}: not found (404)`);
         return null;
       }
+      if (res.ok) return await res.json();
+      console.warn(`[blob] read ${p}: unexpected status ${res.status}`);
+    } catch (e) {
+      console.warn(`[blob] read ${p}: fetch error — ${(e && e.message) || e}`);
     }
   }
   // Fallback: locate the blob via list, then fetch its URL.
   try {
     const { blobs } = await list({ prefix: p, token: TOKEN, limit: 1 });
     const hit = (blobs || []).find((b) => b.pathname === p) || (blobs || [])[0];
-    if (!hit) return null;
+    if (!hit) {
+      console.log(`[blob] read ${p}: not found (list)`);
+      return null;
+    }
     if (!base) base = new URL(hit.url).origin;
     const res = await fetch(bust(hit.url), { cache: 'no-store' });
     return res.ok ? await res.json() : null;
-  } catch {
+  } catch (e) {
+    console.error(`[blob] read ${p}: FAILED — ${(e && e.message) || e}`);
     return null;
   }
 }
 
 async function write(namespace, id, data) {
-  const { url } = await put(pathFor(namespace, id), JSON.stringify(data), {
-    access: 'public',
-    addRandomSuffix: false, // stable, predictable path
-    allowOverwrite: true, // updating an existing record
-    contentType: 'application/json',
-    cacheControlMaxAge: 0, // mutable data — don't let the CDN serve it stale
-    token: TOKEN,
-  });
-  if (!base) {
-    try {
-      base = new URL(url).origin;
-    } catch {
-      /* ignore */
+  const p = pathFor(namespace, id);
+  try {
+    const { url } = await put(p, JSON.stringify(data), {
+      access: 'public',
+      addRandomSuffix: false, // stable, predictable path
+      allowOverwrite: true, // updating an existing record
+      contentType: 'application/json',
+      cacheControlMaxAge: 0, // mutable data — don't let the CDN serve it stale
+      token: TOKEN,
+    });
+    if (!base) {
+      try {
+        base = new URL(url).origin;
+      } catch {
+        /* ignore */
+      }
     }
+    console.log(`[blob] write ${p}: ok`);
+  } catch (e) {
+    console.error(`[blob] write ${p}: FAILED — ${(e && e.message) || e}`);
+    throw e; // surface to the route so the client sees a real error
   }
 }
 

@@ -91,7 +91,7 @@ app.get('*', (req, res) => {
 
 // Centralised error handler.
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error(`[api] ${req.method} ${req.originalUrl} -> 500:`, err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
