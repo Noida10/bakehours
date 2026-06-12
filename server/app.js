@@ -36,6 +36,32 @@ app.get('/api/health', (req, res) =>
   res.json({ ok: true, storage: storageMode, persistent })
 );
 
+// Storage self-test: writes a throwaway record and reads it back, so it's
+// easy to confirm on the live deployment whether persistence actually works
+// (and to surface the exact error if it doesn't). Safe to call anytime.
+app.get('/api/health/storage', async (req, res) => {
+  const store = require('./lib/store');
+  const out = { mode: store.mode, persistent: store.persistent };
+  const stamp = new Date().toISOString();
+  try {
+    await store.write('meta', '_selftest', { stamp });
+    out.wrote = true;
+  } catch (e) {
+    out.wrote = false;
+    out.writeError = String((e && e.message) || e);
+    return res.json(out);
+  }
+  try {
+    const back = await store.read('meta', '_selftest');
+    out.readBack = !!(back && back.stamp === stamp);
+    out.value = back;
+  } catch (e) {
+    out.readBack = false;
+    out.readError = String((e && e.message) || e);
+  }
+  res.json(out);
+});
+
 // Everything else needs a recognised user.
 app.use('/api/sprint', requireUser, sprintRoutes);
 app.use('/api/vacation', requireUser, vacationRoutes);

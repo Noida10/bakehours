@@ -37,11 +37,17 @@ async function ensureBase() {
   return base;
 }
 
+// A unique query param per read makes each request a CDN cache miss, so we
+// never get a stale object — or a cached 404 from just after a write.
+function bust(url) {
+  return `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`;
+}
+
 async function read(namespace, id) {
   const p = pathFor(namespace, id);
   const origin = await ensureBase();
   if (origin) {
-    const res = await fetch(`${origin}/${p}`, { cache: 'no-store' });
+    const res = await fetch(bust(`${origin}/${p}`), { cache: 'no-store' });
     if (res.status === 404) return null;
     if (res.ok) {
       try {
@@ -57,7 +63,7 @@ async function read(namespace, id) {
     const hit = (blobs || []).find((b) => b.pathname === p) || (blobs || [])[0];
     if (!hit) return null;
     if (!base) base = new URL(hit.url).origin;
-    const res = await fetch(hit.url, { cache: 'no-store' });
+    const res = await fetch(bust(hit.url), { cache: 'no-store' });
     return res.ok ? await res.json() : null;
   } catch {
     return null;
