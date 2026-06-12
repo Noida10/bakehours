@@ -14,9 +14,11 @@ async function request(path, { method = 'GET', body } = {}) {
   const res = await fetch(path, {
     method,
     headers,
+    cache: 'no-store',
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) {
+  // 304 can surface to fetch behind a CDN; treat it as a successful read.
+  if (!res.ok && res.status !== 304) {
     let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();

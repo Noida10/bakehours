@@ -19,14 +19,26 @@ if (useKV) {
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const NAMESPACES = ['sprints', 'vacations', 'projects'];
 
+// Where file-mode data lives. The project filesystem is read-only on Vercel,
+// so fall back to /tmp there (ephemeral) instead of crashing on writes.
+const FILE_BASE = useKV
+  ? null
+  : process.env.VERCEL
+  ? path.join('/tmp', 'eitp-data')
+  : DATA_DIR;
+
 if (!useKV) {
   for (const ns of NAMESPACES) {
-    fs.mkdirSync(path.join(DATA_DIR, ns), { recursive: true });
+    try {
+      fs.mkdirSync(path.join(FILE_BASE, ns), { recursive: true });
+    } catch {
+      /* best effort */
+    }
   }
 }
 
 function fileFor(namespace, id) {
-  return path.join(DATA_DIR, namespace, `${id}.json`);
+  return path.join(FILE_BASE, namespace, `${id}.json`);
 }
 
 async function read(namespace, id) {
@@ -46,8 +58,10 @@ async function write(namespace, id, data) {
     await kv.set(`${namespace}:${id}`, data);
     return;
   }
-  fs.mkdirSync(path.join(DATA_DIR, namespace), { recursive: true });
+  fs.mkdirSync(path.join(FILE_BASE, namespace), { recursive: true });
   fs.writeFileSync(fileFor(namespace, id), JSON.stringify(data, null, 2));
 }
 
-module.exports = { read, write, useKV, DATA_DIR };
+const mode = useKV ? 'kv' : 'file';
+
+module.exports = { read, write, useKV, mode, DATA_DIR };
