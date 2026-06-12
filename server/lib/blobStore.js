@@ -31,6 +31,21 @@ if (available) {
 // Cached per instance so reads are a direct fetch rather than a list call.
 let base = null;
 
+// Write-through cache. Vercel Blob serves content via a CDN that keeps serving
+// the OLD object for a short while after an overwrite (its edge cache has a
+// ~60s floor that query-string cache-busting can't defeat). So after we write,
+// we hold the fresh value in memory and serve reads from it — that way a save
+// followed by a refresh shows the new data immediately instead of "a few
+// refreshes later". Entries expire so a warm instance eventually re-reads the
+// (by then consistent) blob.
+const cache = new Map(); // key -> { data, at }
+const CACHE_TTL_MS = 90 * 1000;
+const clone = (v) => (v == null ? v : JSON.parse(JSON.stringify(v)));
+
+function cacheKey(namespace, id) {
+  return `${namespace}:${id}`;
+}
+
 function pathFor(namespace, id) {
   return `data/${namespace}/${id}.json`;
 }
@@ -46,14 +61,26 @@ async function ensureBase() {
   return base;
 }
 
-// A unique query param per read makes each request a CDN cache miss, so we
-// never get a stale object — or a cached 404 from just after a write.
+// A unique query param per read makes each request a CDN cache miss where
+// possible; combined with the write-through cache above this keeps reads fresh.
 function bust(url) {
   return `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`;
 }
 
 async function read(namespace, id) {
+  const key = cacheKey(namespace, id);
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+    return clone(cached.data);
+  }
+
   const p = pathFor(namespace, id);
+  const fresh = await fetchBlob(p);
+  if (fresh != null) cache.set(key, { data: clone(fresh), at: Date.now() });
+  return fresh;
+}
+
+async function fetchBlob(p) {
   const origin = await ensureBase();
   if (origin) {
     try {
@@ -103,6 +130,8 @@ async function write(namespace, id, data) {
         /* ignore */
       }
     }
+    // Serve subsequent reads from memory until the CDN catches up.
+    cache.set(cacheKey(namespace, id), { data: clone(data), at: Date.now() });
     console.log(`[blob] write ${p}: ok`);
   } catch (e) {
     console.error(`[blob] write ${p}: FAILED — ${(e && e.message) || e}`);
