@@ -1,18 +1,22 @@
 import { useState, useMemo } from 'react';
 import { downloadUrl } from '../api';
-import { weekOptions, defaultVacationRange } from '../lib/weeks';
+import { weekOptions, defaultVacationRange, currentWeekInfo } from '../lib/weeks';
 
 export default function DownloadsTab() {
   const weeks = useMemo(() => weekOptions(16, 2), []);
   const def = useMemo(() => defaultVacationRange(), []);
-  const current = weeks[weeks.length - 3] || weeks[0]; // current week-ish
 
-  const [singleWeek, setSingleWeek] = useState(current.id);
-  const [rangeFrom, setRangeFrom] = useState(weeks[Math.max(0, weeks.length - 6)].id);
-  const [rangeTo, setRangeTo] = useState(current.id);
+  // Default the week selectors to the week that contains today's date.
+  const currentId = currentWeekInfo().id;
+  const curIdx = Math.max(0, weeks.findIndex((w) => w.id === currentId));
+  const fromId = weeks[Math.min(weeks.length - 1, curIdx + 5)].id; // ~5 weeks back
+
+  const [singleWeek, setSingleWeek] = useState(currentId);
+  const [rangeFrom, setRangeFrom] = useState(fromId);
+  const [rangeTo, setRangeTo] = useState(currentId);
   const [vacStart, setVacStart] = useState(def.start);
   const [vacEnd, setVacEnd] = useState(def.end);
-  const [combWeek, setCombWeek] = useState(current.id);
+  const [combWeek, setCombWeek] = useState(currentId);
 
   function go(path) {
     window.open(downloadUrl(path), '_blank');
