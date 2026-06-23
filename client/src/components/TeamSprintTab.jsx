@@ -35,13 +35,18 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
   const [sprint, setSprint] = useState(null);
   const [summary, setSummary] = useState([]); // editable compiled breakdown
   const [breakdowns, setBreakdowns] = useState({}); // per-member project entries
+  const [myProjects, setMyProjects] = useState([]); // Anmol's own breakdown
   const [members, setMembers] = useState(BASE_MEMBERS);
   const [catalog, setCatalog] = useState([]); // project names from Manage tab
   const [saved, setSaved] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const snapshot = (sp, sum) =>
-    JSON.stringify({ anmol: (sp && sp.members.Anmol) || {}, summary: sum });
+  const snapshot = (sp, sum, mine) =>
+    JSON.stringify({
+      anmol: (sp && sp.members.Anmol) || {},
+      summary: sum,
+      mine,
+    });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -64,9 +69,11 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
         setSprint(s);
         setSummary(sum);
         setBreakdowns(p.memberBreakdowns || {});
+        const mine = (p.memberBreakdowns && p.memberBreakdowns.Anmol) || [];
+        setMyProjects(mine);
         setMembers(r.devMembers || BASE_MEMBERS);
         setCatalog((cat.projects || []).map((x) => x.name));
-        setSaved(snapshot(s, sum));
+        setSaved(snapshot(s, sum, mine));
         setLoading(false);
       })
       .catch(() => {
@@ -79,23 +86,25 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
     load();
   }, [load]);
 
-  const dirty = !loading && editable && snapshot(sprint, summary) !== saved;
+  const dirty =
+    !loading && editable && snapshot(sprint, summary, myProjects) !== saved;
 
   const saver = useCallback(async () => {
     const fields = {};
     const anmol = (sprint && sprint.members.Anmol) || EMPTY_ROW;
     for (const f of SPRINT_FIELDS) fields[f.key] = Number(anmol[f.key]) || 0;
+    // Anmol's Project hours come from his breakdown.
+    fields.project = myProjects.reduce((s, e) => s + (Number(e.days) || 0), 0);
     const savedRow = await api.putSprint(weekId, 'Anmol', fields);
+    await api.putProjects(weekId, 'Anmol', myProjects);
     await api.putCompiled(weekId, summary);
     setSprint((cur) => ({
       ...cur,
       members: { ...cur.members, Anmol: savedRow },
     }));
-    // Recompute the snapshot from the freshly-saved row.
-    setSaved(
-      JSON.stringify({ anmol: savedRow, summary })
-    );
-  }, [weekId, sprint, summary]);
+    setBreakdowns((cur) => ({ ...cur, Anmol: myProjects }));
+    setSaved(JSON.stringify({ anmol: savedRow, summary, mine: myProjects }));
+  }, [weekId, sprint, summary, myProjects]);
 
   useTabSave(saver, dirty);
 
@@ -133,11 +142,16 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
 
   // A member's Project hours always equal the total days in their project
   // breakdown. Anmol enters his row directly here, so keep his typed value.
-  const breakdownDays = (name) =>
-    (breakdowns[name] || []).reduce((s, e) => s + (Number(e.days) || 0), 0);
+  const sumDays = (list) =>
+    (list || []).reduce((s, e) => s + (Number(e.days) || 0), 0);
+  const breakdownDays = (name) => sumDays(breakdowns[name]);
   const effectiveMember = (name) => {
     const m = sprint.members[name] || {};
-    return name === 'Anmol' ? m : { ...m, project: breakdownDays(name) };
+    if (name === 'Anmol') {
+      // Anmol's Project comes from his own breakdown once he's added entries.
+      return myProjects.length ? { ...m, project: sumDays(myProjects) } : m;
+    }
+    return { ...m, project: breakdownDays(name) };
   };
 
   const totals = {};
@@ -194,6 +208,18 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
                   </td>
                   {SPRINT_FIELDS.map((f) => {
                     const val = Number(m[f.key]) || 0;
+                    if (isAnmol && editable && f.key === 'project') {
+                      // Auto from Anmol's project breakdown (editor below).
+                      return (
+                        <td
+                          key={f.key}
+                          className="px-2 py-2 text-center text-slate-700 bg-slate-50"
+                          title="Auto from your project breakdown below"
+                        >
+                          {val}
+                        </td>
+                      );
+                    }
                     if (isAnmol && editable) {
                       return (
                         <td key={f.key} className="px-1 py-1">
@@ -249,12 +275,85 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
         </table>
       </div>
 
+      {editable && (
+        <MyBreakdown
+          value={myProjects}
+          setValue={setMyProjects}
+          catalog={catalog}
+        />
+      )}
+
       <TeamProjectBreakdown
         summary={summary}
         setSummary={setSummary}
         editable={editable}
         catalog={catalog}
       />
+    </div>
+  );
+}
+
+// Anmol's own project breakdown — his Project hours auto-equal the total here.
+function MyBreakdown({ value, setValue, catalog }) {
+  const total = value.reduce((s, e) => s + (Number(e.days) || 0), 0);
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-semibold text-slate-800">
+          My Project Breakdown (Anmol)
+        </h2>
+        <span className="text-xs text-slate-400">{total} day(s) total</span>
+      </div>
+      <p className="text-xs text-slate-400 mb-3">
+        Your Project hours in the table above auto-equal this total. Save with
+        the header button.
+      </p>
+      <div className="space-y-2">
+        {value.length === 0 && (
+          <p className="text-sm text-slate-400 italic">No projects added yet.</p>
+        )}
+        {value.map((p, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <ProjectSelect
+              className="flex-1"
+              value={p.name}
+              options={catalog}
+              onChange={(v) => {
+                const next = value.slice();
+                next[i] = { ...next[i], name: v };
+                setValue(next);
+              }}
+            />
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={p.days}
+              onChange={(e) => {
+                const next = value.slice();
+                next[i] = { ...next[i], days: Number(e.target.value) || 0 };
+                setValue(next);
+              }}
+              className="w-20 rounded-md border border-slate-300 px-2 py-2 text-center text-sm outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <button
+              type="button"
+              onClick={() => setValue(value.filter((_, j) => j !== i))}
+              className="h-9 w-9 shrink-0 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
+              aria-label="Delete project"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => setValue([...value, { name: '', days: 0 }])}
+        className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
+      >
+        + Add project
+      </button>
     </div>
   );
 }
