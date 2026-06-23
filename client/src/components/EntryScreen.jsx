@@ -5,7 +5,7 @@ import { BUILD } from '../lib/build';
 // Members sign in with their first name. Admins (Anmol, Julien) sign in with
 // their private code, so they aren't shown here.
 const VALID_NAMES = [
-  'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
+  'Vinay', 'Roshan', 'Chandrakesh', 'Pavan',
   'Harit', 'Sushobhita', 'Divya',
 ];
 

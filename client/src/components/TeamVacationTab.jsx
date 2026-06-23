@@ -11,7 +11,7 @@ import { VAC_CYCLE, VAC_STYLE, VAC_LABEL } from '../lib/constants';
 import Skeleton from './Skeleton';
 
 const BASE_MEMBERS = [
-  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
+  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pavan',
   'Harit', 'Sushobhita', 'Divya',
 ];
 

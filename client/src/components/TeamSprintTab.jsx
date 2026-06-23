@@ -8,7 +8,7 @@ import ProjectSelect from './ProjectSelect';
 import Skeleton from './Skeleton';
 
 const BASE_MEMBERS = [
-  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
+  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pavan',
   'Harit', 'Sushobhita', 'Divya',
 ];
 

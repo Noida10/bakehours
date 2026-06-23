@@ -18,7 +18,7 @@ members only see and edit their own data.
 |------|------|-------|
 | Anmol | Admin (editing) | Full team view + his own data row |
 | Julien | Admin (view-only) | Views team data + downloads, no data row, blocked from all writes |
-| Vinay, Roshan, Chandrakesh, Pawan, Harit, Sushobhita, Divya | Member | Own data only |
+| Vinay, Roshan, Chandrakesh, Pavan, Harit, Sushobhita, Divya | Member | Own data only |
 
 ## Getting started
 

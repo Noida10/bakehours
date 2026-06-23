@@ -8,7 +8,7 @@ const BASE_DEV_MEMBERS = [
   'Vinay',
   'Roshan',
   'Chandrakesh',
-  'Pawan',
+  'Pavan',
   'Harit',
   'Sushobhita',
   'Divya',

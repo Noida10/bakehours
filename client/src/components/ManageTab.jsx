@@ -7,7 +7,7 @@ import Skeleton from './Skeleton';
 // Base members ship in code and cannot be removed; admins can add/remove the
 // rest. Kept in sync with server/lib/names.js BASE_DEV_MEMBERS.
 const BASE_MEMBERS = [
-  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pawan',
+  'Anmol', 'Vinay', 'Roshan', 'Chandrakesh', 'Pavan',
   'Harit', 'Sushobhita', 'Divya',
 ];
 
