@@ -34,6 +34,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
   const [sprint, setSprint] = useState(null);
   const [summary, setSummary] = useState([]); // editable compiled breakdown
   const [members, setMembers] = useState(BASE_MEMBERS);
+  const [catalog, setCatalog] = useState([]); // project names from Manage tab
   const [saved, setSaved] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -46,12 +47,14 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
       api.getSprint(weekId),
       api.getProjects(weekId),
       api.getRoster().catch(() => ({ devMembers: BASE_MEMBERS })),
+      api.getCatalog().catch(() => ({ projects: [] })),
     ])
-      .then(([s, p, r]) => {
+      .then(([s, p, r, cat]) => {
         const sum = p.compiledSummary || [];
         setSprint(s);
         setSummary(sum);
         setMembers(r.devMembers || BASE_MEMBERS);
+        setCatalog((cat.projects || []).map((x) => x.name));
         setSaved(snapshot(s, sum));
         setLoading(false);
       })
@@ -230,17 +233,26 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
         summary={summary}
         setSummary={setSummary}
         editable={editable}
+        catalog={catalog}
       />
     </div>
   );
 }
 
-function TeamProjectBreakdown({ summary, setSummary, editable }) {
+function TeamProjectBreakdown({ summary, setSummary, editable, catalog }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-slate-800">Team Project Breakdown</h2>
       </div>
+
+      {/* Shared project catalog (from the Manage tab) for the dropdown. */}
+      <datalist id="team-project-catalog">
+        {catalog.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
       {summary.length === 0 && (
         <p className="text-sm text-slate-400 italic">
           No project entries yet. They auto-compile from member submissions.
@@ -251,6 +263,8 @@ function TeamProjectBreakdown({ summary, setSummary, editable }) {
           <div key={i} className="flex items-center gap-2">
             <input
               type="text"
+              list="team-project-catalog"
+              placeholder="Select or type a project…"
               value={item.name}
               readOnly={!editable}
               onChange={(e) => {
