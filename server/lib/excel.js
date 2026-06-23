@@ -38,6 +38,19 @@ const SPRINT_HEADERS = [
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const FULL_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+// "June 08" or, with year, "June 26, 2026" — matches the vacation title format.
+function titleDate(iso, withYear) {
+  const dt = new Date(`${iso}T00:00:00Z`);
+  const d = String(dt.getUTCDate()).padStart(2, '0');
+  const base = `${FULL_MONTHS[dt.getUTCMonth()]} ${d}`;
+  return withYear ? `${base}, ${dt.getUTCFullYear()}` : base;
+}
+
 function thinBorder() {
   const side = { style: 'thin', color: { argb: 'FFCBD5E1' } };
   return { top: side, left: side, bottom: side, right: side };
@@ -122,18 +135,14 @@ function addSprintSheet(workbook, info, sprint, projects, devMembers, sheetName)
   ws.addRow([]);
   const pbTitleRow = ws.addRow(['Team Project Breakdown']);
   pbTitleRow.getCell(1).font = TITLE_FONT;
-  const pbHeader = ws.addRow(['Project', 'Days', 'Contributors']);
+  const pbHeader = ws.addRow(['Project', 'Days']);
   styleHeaderRow(pbHeader);
   const summary = (projects.compiledSummary || []).length
     ? projects.compiledSummary
     : compileSummary(projects.memberBreakdowns);
   let pbIndex = 0;
   for (const item of summary) {
-    const row = ws.addRow([
-      item.name,
-      Number(item.days) || 0,
-      (item.contributors || []).join(', '),
-    ]);
+    const row = ws.addRow([item.name, Number(item.days) || 0]);
     const alt = pbIndex % 2 === 1;
     row.eachCell((cell) => {
       cell.border = thinBorder();
@@ -151,54 +160,67 @@ function addSprintSheet(workbook, info, sprint, projects, devMembers, sheetName)
 
 function addVacationSheet(workbook, startISO, endISO, vacData, devMembers, sheetName) {
   const days = workingDaysBetween(startISO, endISO);
+  const lastCol = days.length + 2; // Sr. + Team Member + one per day
 
   const ws = workbook.addWorksheet(sheetName || 'Vacation Planner');
-  ws.mergeCells(1, 1, 1, days.length + 1);
-  ws.getCell('A1').value = `Vacation Planner — ${startISO} to ${endISO}`;
+
+  // Title.
+  ws.mergeCells(1, 1, 1, lastCol);
+  ws.getCell('A1').value = `Team Vacation Planner — ${titleDate(
+    startISO,
+    false
+  )} to ${titleDate(endISO, true)}`;
   ws.getCell('A1').font = TITLE_FONT;
   ws.getRow(1).height = 26;
 
-  // Two header rows: date + day name.
+  // Legend at the top.
+  const legendRow = ws.addRow([
+    'Legend:', '', 'V = Vacation', 'H = Half Day', 'WFH = Work From Home',
+  ]);
+  legendRow.getCell(1).font = { bold: true };
+  legendRow.getCell(3).fill = VAC_FILLS.V;
+  legendRow.getCell(4).fill = VAC_FILLS.H;
+  legendRow.getCell(5).fill = VAC_FILLS.WFH;
+  ws.addRow([]); // spacer
+
+  // Two header rows: Sr. / Team Member / dates, then weekday names.
   const dateHeader = ws.addRow([
-    'Member',
+    'Sr.',
+    'Team Member',
     ...days.map((d) => {
       const dt = new Date(`${d}T00:00:00Z`);
-      return `${dt.getUTCDate()}-${MONTHS[dt.getUTCMonth()]}`;
+      return `${String(dt.getUTCDate()).padStart(2, '0')}-${MONTHS[dt.getUTCMonth()]}`;
     }),
   ]);
   styleHeaderRow(dateHeader);
   const dayHeader = ws.addRow([
     '',
+    '',
     ...days.map((d) => DAY_NAMES[new Date(`${d}T00:00:00Z`).getUTCDay()]),
   ]);
   styleHeaderRow(dayHeader);
 
-  for (const name of devMembers) {
+  devMembers.forEach((name, i) => {
     const entries = vacData[name] || {};
-    const row = ws.addRow([name, ...days.map((d) => entries[d] || '')]);
+    const row = ws.addRow([i + 1, name, ...days.map((d) => entries[d] || '')]);
     row.eachCell((cell, col) => {
       cell.border = thinBorder();
       cell.alignment = { horizontal: 'center' };
       if (col === 1) {
+        cell.alignment = { horizontal: 'center' };
+      } else if (col === 2) {
         cell.font = { bold: true };
         cell.alignment = { horizontal: 'left' };
       } else {
-        const code = days[col - 2] ? entries[days[col - 2]] : '';
+        const code = days[col - 3] ? entries[days[col - 3]] : '';
         if (code && VAC_FILLS[code]) cell.fill = VAC_FILLS[code];
       }
     });
-  }
+  });
 
-  // Legend.
-  ws.addRow([]);
-  const legendRow = ws.addRow(['Legend:', 'V = Vacation', 'H = Half Day', 'WFH = Work From Home']);
-  legendRow.getCell(1).font = { bold: true };
-  legendRow.getCell(2).fill = VAC_FILLS.V;
-  legendRow.getCell(3).fill = VAC_FILLS.H;
-  legendRow.getCell(4).fill = VAC_FILLS.WFH;
-
-  ws.getColumn(1).width = 18;
-  for (let c = 2; c <= days.length + 1; c++) ws.getColumn(c).width = 9;
+  ws.getColumn(1).width = 5;
+  ws.getColumn(2).width = 16;
+  for (let c = 3; c <= lastCol; c++) ws.getColumn(c).width = 9;
   return ws;
 }
 
