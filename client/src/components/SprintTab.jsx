@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '../api';
 import { useTabSave } from './SaveContext';
 import {
@@ -44,10 +44,16 @@ export default function SprintTab({ user, weekId, setWeekId }) {
     ])
       .then(([sprint, proj, cat]) => {
         if (!active) return;
-        const mine = sprint.members[user.name] || {
+        const raw = sprint.members[user.name] || {
           project: 0, bug: 0, training: 0, other: 0, meeting: 0, lead: 0, off: 0,
         };
         const mineProjects = proj.memberBreakdowns[user.name] || [];
+        // Project hours are driven by the breakdown total, not typed.
+        const projectDays = mineProjects.reduce(
+          (s, p) => s + (Number(p.days) || 0),
+          0
+        );
+        const mine = { ...raw, project: projectDays };
         setRow(mine);
         setProjects(mineProjects);
         setCatalog((cat.projects || []).map((p) => p.name));
@@ -73,6 +79,15 @@ export default function SprintTab({ user, weekId, setWeekId }) {
   }, [weekId, user.name, row, projects]);
 
   useTabSave(saver, dirty);
+
+  // "Project" hours auto-equal the total days entered in the project breakdown.
+  const projectDays = useMemo(
+    () => projects.reduce((s, p) => s + (Number(p.days) || 0), 0),
+    [projects]
+  );
+  useEffect(() => {
+    setRow((r) => (r && r.project !== projectDays ? { ...r, project: projectDays } : r));
+  }, [projectDays]);
 
   function changeWeek(next) {
     if (
@@ -124,12 +139,24 @@ export default function SprintTab({ user, weekId, setWeekId }) {
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 {f.label}
               </label>
-              <NumberInput
-                value={row[f.key] ?? 0}
-                onChange={(v) => updateField(f.key, v)}
-              />
+              {f.key === 'project' ? (
+                <input
+                  type="number"
+                  value={projectDays}
+                  readOnly
+                  title="Auto-calculated from your project breakdown below"
+                  className="w-full rounded-md border border-slate-300 bg-slate-50 px-2 py-2 text-center text-sm text-slate-700 cursor-not-allowed outline-none"
+                />
+              ) : (
+                <NumberInput
+                  value={row[f.key] ?? 0}
+                  onChange={(v) => updateField(f.key, v)}
+                />
+              )}
               <p className="mt-1 text-[10px] leading-tight text-slate-400">
-                {f.hint}
+                {f.key === 'project'
+                  ? 'Auto = total days in your project breakdown below'
+                  : f.hint}
               </p>
             </div>
           ))}
