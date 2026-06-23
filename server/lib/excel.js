@@ -96,7 +96,15 @@ function addSprintSheet(workbook, info, sprint, projects, devMembers, sheetName)
   const totals = { project: 0, bug: 0, training: 0, other: 0, meeting: 0, lead: 0, off: 0 };
   let rowIndex = 0;
   for (const name of devMembers) {
-    const m = sprint.members[name] || {};
+    const m0 = sprint.members[name] || {};
+    // Project hours = total days in the member's project breakdown (Anmol
+    // types his row directly, so keep his value).
+    const projectDays =
+      name === 'Anmol'
+        ? Number(m0.project) || 0
+        : ((projects && projects.memberBreakdowns && projects.memberBreakdowns[name]) || [])
+            .reduce((s, e) => s + (Number(e.days) || 0), 0);
+    const m = { ...m0, project: projectDays };
     const total = SPRINT_COLS.reduce((s, k) => s + (Number(m[k]) || 0), 0);
     const totalDev = (Number(m.project) || 0) + (Number(m.bug) || 0) + (Number(m.training) || 0);
     for (const k of SPRINT_COLS) totals[k] += Number(m[k]) || 0;

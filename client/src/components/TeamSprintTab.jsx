@@ -34,6 +34,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
 
   const [sprint, setSprint] = useState(null);
   const [summary, setSummary] = useState([]); // editable compiled breakdown
+  const [breakdowns, setBreakdowns] = useState({}); // per-member project entries
   const [members, setMembers] = useState(BASE_MEMBERS);
   const [catalog, setCatalog] = useState([]); // project names from Manage tab
   const [saved, setSaved] = useState('');
@@ -62,6 +63,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
           : p.combined || [];
         setSprint(s);
         setSummary(sum);
+        setBreakdowns(p.memberBreakdowns || {});
         setMembers(r.devMembers || BASE_MEMBERS);
         setCatalog((cat.projects || []).map((x) => x.name));
         setSaved(snapshot(s, sum));
@@ -129,10 +131,19 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
     );
   }
 
+  // A member's Project hours always equal the total days in their project
+  // breakdown. Anmol enters his row directly here, so keep his typed value.
+  const breakdownDays = (name) =>
+    (breakdowns[name] || []).reduce((s, e) => s + (Number(e.days) || 0), 0);
+  const effectiveMember = (name) => {
+    const m = sprint.members[name] || {};
+    return name === 'Anmol' ? m : { ...m, project: breakdownDays(name) };
+  };
+
   const totals = {};
   for (const f of SPRINT_FIELDS) totals[f.key] = 0;
   members.forEach((name) => {
-    const m = sprint.members[name] || {};
+    const m = effectiveMember(name);
     for (const f of SPRINT_FIELDS) totals[f.key] += Number(m[f.key]) || 0;
   });
   const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
@@ -170,7 +181,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
           </thead>
           <tbody>
             {members.map((name, idx) => {
-              const m = sprint.members[name] || {};
+              const m = effectiveMember(name);
               const isAnmol = name === 'Anmol';
               const submitted = !!m.lastUpdated;
               return (
