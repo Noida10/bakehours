@@ -51,9 +51,15 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
       api.getCatalog().catch(() => ({ projects: [] })),
     ])
       .then(([s, p, r, cat]) => {
-        // Anmol edits the curated compiled summary; Julien (view-only) sees the
-        // live combined breakdown merged from every member's submissions.
-        const sum = (editable ? p.compiledSummary : p.combined) || [];
+        // Anmol edits the curated compiled summary. Julien (view-only) sees the
+        // canonical breakdown — the curated summary if it has entries, else the
+        // live combination of every member's submissions.
+        const compiled = p.compiledSummary || [];
+        const sum = editable
+          ? compiled
+          : compiled.length
+          ? compiled
+          : p.combined || [];
         setSprint(s);
         setSummary(sum);
         setMembers(r.devMembers || BASE_MEMBERS);
