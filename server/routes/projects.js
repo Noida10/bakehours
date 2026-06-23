@@ -4,6 +4,7 @@ const {
   saveProjectMember,
   saveCompiledSummary,
 } = require('../lib/storage');
+const { mergeProjects } = require('../lib/catalog');
 const { canWriteMember } = require('../lib/auth');
 const { resolveName, hasDataRow } = require('../lib/roster');
 const asyncHandler = require('../lib/asyncHandler');
@@ -56,12 +57,17 @@ router.put(
     if (!canWriteMember(req, member)) {
       return res.status(403).json({ error: 'Not allowed to edit this member' });
     }
-    const data = await saveProjectMember(
-      req.params.weekId,
-      member,
-      (req.body && req.body.entries) || []
-    );
+    const entries = (req.body && req.body.entries) || [];
+    const data = await saveProjectMember(req.params.weekId, member, entries);
     if (!data) return res.status(400).json({ error: 'Invalid week id' });
+
+    // Any custom project the member typed joins the shared catalog so it
+    // shows up in everyone's dropdown. Best-effort — don't fail the save.
+    try {
+      await mergeProjects(entries.map((e) => e && e.name));
+    } catch {
+      /* ignore catalog merge errors */
+    }
     res.json(data);
   })
 );

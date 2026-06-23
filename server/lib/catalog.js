@@ -27,4 +27,28 @@ async function setCatalog(projects) {
   return data;
 }
 
-module.exports = { getCatalog, setCatalog };
+// Merge new project names into the catalog (dedupe case-insensitive). Used so
+// that when a member types a custom project, it becomes available in everyone's
+// dropdown. Returns the updated catalog.
+async function mergeProjects(names) {
+  const incoming = (names || [])
+    .map((n) => String(n || '').trim())
+    .filter(Boolean);
+  if (!incoming.length) return getCatalog();
+
+  const { projects } = await getCatalog();
+  const seen = new Set(projects.map((p) => p.name.toLowerCase()));
+  let changed = false;
+  for (const name of incoming) {
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      projects.push({ name });
+      changed = true;
+    }
+  }
+  if (changed) await setCatalog(projects);
+  return { projects };
+}
+
+module.exports = { getCatalog, setCatalog, mergeProjects };
