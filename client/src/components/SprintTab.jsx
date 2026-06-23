@@ -8,6 +8,7 @@ import {
   rowTotalDev,
 } from '../lib/constants';
 import WeekSelector from './WeekSelector';
+import ProjectSelect from './ProjectSelect';
 import Skeleton from './Skeleton';
 
 function NumberInput({ value, onChange }) {
@@ -159,30 +160,21 @@ export default function SprintTab({ user, weekId, setWeekId }) {
           compile the team-wide project summary.
         </p>
 
-        {/* Shared project names for the dropdown (members can still type custom). */}
-        <datalist id="project-catalog">
-          {catalog.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
-
         <div className="space-y-2">
           {projects.length === 0 && (
             <p className="text-sm text-slate-400 italic">No projects added yet.</p>
           )}
           {projects.map((p, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input
-                type="text"
-                list="project-catalog"
+              <ProjectSelect
+                className="flex-1"
                 value={p.name}
-                placeholder="Select or type a project…"
-                onChange={(e) => {
+                options={catalog}
+                onChange={(v) => {
                   const next = projects.slice();
-                  next[i] = { ...next[i], name: e.target.value };
+                  next[i] = { ...next[i], name: v };
                   setProjects(next);
                 }}
-                className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
               />
               <input
                 type="number"

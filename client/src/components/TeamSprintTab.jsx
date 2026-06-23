@@ -4,6 +4,7 @@ import { useToast } from './Toast';
 import { useTabSave } from './SaveContext';
 import { SPRINT_FIELDS, rowTotal, rowTotalDev } from '../lib/constants';
 import WeekSelector from './WeekSelector';
+import ProjectSelect from './ProjectSelect';
 import Skeleton from './Skeleton';
 
 const BASE_MEMBERS = [
@@ -246,13 +247,6 @@ function TeamProjectBreakdown({ summary, setSummary, editable, catalog }) {
         <h2 className="font-semibold text-slate-800">Team Project Breakdown</h2>
       </div>
 
-      {/* Shared project catalog (from the Manage tab) for the dropdown. */}
-      <datalist id="team-project-catalog">
-        {catalog.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
-
       {summary.length === 0 && (
         <p className="text-sm text-slate-400 italic">
           No project entries yet. They auto-compile from member submissions.
@@ -261,18 +255,16 @@ function TeamProjectBreakdown({ summary, setSummary, editable, catalog }) {
       <div className="space-y-2">
         {summary.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
-            <input
-              type="text"
-              list="team-project-catalog"
-              placeholder="Select or type a project…"
+            <ProjectSelect
+              className="flex-1"
               value={item.name}
+              options={catalog}
               readOnly={!editable}
-              onChange={(e) => {
+              onChange={(v) => {
                 const next = summary.slice();
-                next[i] = { ...next[i], name: e.target.value };
+                next[i] = { ...next[i], name: v };
                 setSummary(next);
               }}
-              className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 read-only:bg-slate-50"
             />
             <input
               type="number"
