@@ -37,9 +37,18 @@ export default function EntryScreen({ onEnter }) {
         return;
       }
       if (remember) {
+        const u = {
+          name: result.canonicalName,
+          role: result.role,
+          isAdmin: result.isAdmin,
+          canEdit: result.canEdit,
+          hasDataRow: result.hasDataRow,
+        };
         localStorage.setItem('eitp.name', result.canonicalName);
+        localStorage.setItem('eitp.user', JSON.stringify(u));
       } else {
         localStorage.removeItem('eitp.name');
+        localStorage.removeItem('eitp.user');
       }
       onEnter(result);
     } catch {

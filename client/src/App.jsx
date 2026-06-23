@@ -17,44 +17,69 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
 
-  // Restore a remembered session on load.
+  // Restore a remembered session. Restore optimistically from storage so a
+  // refresh keeps you signed in even if the server is briefly slow/unreachable;
+  // revalidate in the background and only sign out if it's *explicitly* invalid.
   useEffect(() => {
-    const saved = localStorage.getItem('eitp.name');
-    if (!saved) {
-      setBooting(false);
-      return;
+    let savedUser = null;
+    try {
+      savedUser = JSON.parse(localStorage.getItem('eitp.user') || 'null');
+    } catch {
+      savedUser = null;
     }
+    const name = (savedUser && savedUser.name) || localStorage.getItem('eitp.name');
+
+    if (savedUser && savedUser.name) {
+      setApiUser(savedUser.name);
+      setUser(savedUser);
+    }
+    setBooting(false);
+
+    if (!name) return;
     api
-      .validateName(saved)
+      .validateName(name)
       .then((res) => {
-        if (res.valid) {
-          setApiUser(res.canonicalName);
-          setUser({
+        if (res && res.valid) {
+          const u = {
             name: res.canonicalName,
             role: res.role,
             isAdmin: res.isAdmin,
             canEdit: res.canEdit,
             hasDataRow: res.hasDataRow,
-          });
+          };
+          setApiUser(u.name);
+          setUser(u);
+          localStorage.setItem('eitp.user', JSON.stringify(u));
+          localStorage.setItem('eitp.name', u.name);
+        } else if (res && res.valid === false) {
+          // Server clearly doesn't recognise the name → sign out.
+          localStorage.removeItem('eitp.user');
+          localStorage.removeItem('eitp.name');
+          setApiUser(null);
+          setUser(null);
         }
+        // Network/other errors fall through to .catch and keep the session.
       })
-      .catch(() => {})
-      .finally(() => setBooting(false));
+      .catch(() => {
+        /* keep the optimistic session on transient errors */
+      });
   }, []);
 
   function handleEnter(res) {
-    setApiUser(res.canonicalName);
-    setUser({
+    const u = {
       name: res.canonicalName,
       role: res.role,
       isAdmin: res.isAdmin,
       canEdit: res.canEdit,
       hasDataRow: res.hasDataRow,
-    });
+    };
+    setApiUser(u.name);
+    setUser(u);
   }
 
   function signOut() {
     localStorage.removeItem('eitp.name');
+    localStorage.removeItem('eitp.user');
     setApiUser(null);
     setUser(null);
   }

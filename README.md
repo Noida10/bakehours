@@ -49,24 +49,28 @@ filesystem is read-only/ephemeral, production data is stored in a connected
 store — **Vercel Blob** or **Vercel KV / Upstash Redis** — instead of JSON
 files.
 
-**One-time setup (Vercel Blob — recommended):**
+**One-time setup (Upstash Redis — recommended, free, strongly consistent):**
 
-1. Import the repo into Vercel (no framework preset needed — `vercel.json`
-   defines the build).
-2. In the project's **Storage** tab, create a **Blob** store and **connect
-   it** to the project. Vercel injects a `BLOB_READ_WRITE_TOKEN` (a custom
-   name like `EQUINOX_DEV_READ_WRITE_TOKEN` is also detected). The token —
-   not just the store ID — is what authenticates writes.
-3. **Redeploy** so the function picks up the new env var. Env vars added
-   after a deploy do **not** apply to existing deployments — trigger a fresh
-   deploy (Deployments → ⋯ → Redeploy, or push a commit).
+Redis is the best fit here — instant reads after writes, no caching delays.
+Either connect it through Vercel or use a free Upstash account directly.
 
-> **Vercel KV / Upstash Redis** also works: connect a KV store and Vercel
-> injects `KV_REST_API_URL` / `KV_REST_API_TOKEN` (Upstash names
-> `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are accepted too). KV
-> takes priority over Blob if both are present.
+*Via Vercel:* Storage tab → create a **KV / Upstash Redis** store → **connect**
+to the project. Vercel injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
 
-The storage layer auto-detects the backend (KV → Blob → files). Local
+*Direct (no Vercel marketplace):*
+
+1. Create a free database at [console.upstash.com](https://console.upstash.com)
+   (Redis → Create Database).
+2. Copy the **REST URL** and **REST TOKEN** from its REST API section.
+3. In Vercel → project → **Settings → Environment Variables**, add
+   `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+4. **Redeploy** (env vars don't apply to existing deployments).
+
+> **Vercel Blob** is also supported (connect a Blob store → `…READ_WRITE_TOKEN`),
+> but its content CDN can briefly serve a just-overwritten record stale, so
+> Redis is preferred for this frequently-updated data.
+
+The storage layer auto-detects the backend (**Redis → Blob → files**). Local
 `npm run dev` needs nothing — it uses JSON files.
 
 > **Until a store is connected, data does not persist** — on Vercel the
