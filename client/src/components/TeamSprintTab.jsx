@@ -51,7 +51,9 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
       api.getCatalog().catch(() => ({ projects: [] })),
     ])
       .then(([s, p, r, cat]) => {
-        const sum = p.compiledSummary || [];
+        // Anmol edits the curated compiled summary; Julien (view-only) sees the
+        // live combined breakdown merged from every member's submissions.
+        const sum = (editable ? p.compiledSummary : p.combined) || [];
         setSprint(s);
         setSummary(sum);
         setMembers(r.devMembers || BASE_MEMBERS);
@@ -63,7 +65,7 @@ export default function TeamSprintTab({ user, weekId, setWeekId }) {
         toast.show('Failed to load team data', { type: 'error' });
         setLoading(false);
       });
-  }, [weekId, toast]);
+  }, [weekId, toast, editable]);
 
   useEffect(() => {
     load();
@@ -245,6 +247,11 @@ function TeamProjectBreakdown({ summary, setSummary, editable, catalog }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-slate-800">Team Project Breakdown</h2>
+        {!editable && (
+          <span className="text-xs text-slate-400">
+            Combined from all member submissions
+          </span>
+        )}
       </div>
 
       {summary.length === 0 && (

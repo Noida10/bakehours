@@ -3,6 +3,7 @@ const {
   loadProjects,
   saveProjectMember,
   saveCompiledSummary,
+  compileSummary,
 } = require('../lib/storage');
 const { mergeProjects } = require('../lib/catalog');
 const { canWriteMember } = require('../lib/auth');
@@ -18,7 +19,15 @@ router.get(
     const data = await loadProjects(req.params.weekId);
     if (!data) return res.status(400).json({ error: 'Invalid week id' });
 
-    if (req.user.isAdmin) return res.json(data);
+    if (req.user.isAdmin) {
+      // `combined` = every member's project entries merged into per-project
+      // totals with contributors, for the view-only super admin (Julien) and
+      // as a live reference for the editable summary.
+      return res.json({
+        ...data,
+        combined: compileSummary(data.memberBreakdowns),
+      });
+    }
 
     res.json({
       week: data.week,
